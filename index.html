@@ -3,302 +3,341 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>新川ラーメン 感情マトリクスサーチ</title>
+ <title>富山ラーメンマップ｜現在地から近い・営業中の店がすぐ見つかる</title>
+  <meta name="description" content="富山県（魚津・黒部・滑川・入善・朝日）のラーメン店を現在地から爆速検索！「今営業しているお店」だけを、こってり/あっさりの気分に合わせて1タップで探せる便利なマップです。">
   <style>
     :root { 
-      --bg: #F2F2F7;
-      --card-bg: #FFFFFF; 
-      --text-main: #1C1C1E;
-      --text-sub: #8E8E93;
-      --primary: #E63946;
+      --bg: #F2F2F7; --card-bg: #FFFFFF; --text-main: #1C1C1E; --text-sub: #8E8E93; --primary: #E63946;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text-main); padding-bottom: 50px; }
     
-    body { 
-      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", "Hiragino Kaku Gothic ProN", "Hiragino Sans", sans-serif; 
-      background: var(--bg); 
-      color: var(--text-main); 
-      padding-bottom: 50px; 
-      -webkit-tap-highlight-color: transparent; 
-    }
-  
+    body.lang-ja .en { display: none; }
+    body.lang-ja .ja { display: inline-block; }
+    body.lang-en .ja { display: none; }
+    body.lang-en .en { display: inline-block; }
+    span.ja, span.en { display: inline; }
+
     header {
-      position: sticky;
-      top: 0;
-      background: rgba(255, 255, 255, 0.85);
-      backdrop-filter: blur(10px); 
-      -webkit-backdrop-filter: blur(10px);
-      z-index: 100;
-      padding: 16px 15px;
-      border-bottom: 1px solid rgba(0,0,0,0.05);
-      text-align: center;
+      position: sticky; top: 0; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(10px); z-index: 100;
+      padding: 12px 15px; border-bottom: 1px solid rgba(0,0,0,0.05);
+      display: flex; justify-content: space-between; align-items: center;
     }
-    h1 { font-size: 1.1rem; font-weight: 800; color: var(--text-main); }
+    header a { text-decoration: none; color: var(--text-main); }
+    h1 { font-size: 1.1rem; font-weight: 800; display: flex; align-items: center; }
+    .lang-btn {
+      background: #E5E5EA; border: none; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 0.8rem; cursor: pointer;
+    }
   
     .container { padding: 15px; }
 
-    /* マトリクスUI */
-    .matrix-title { text-align: center; font-size: 0.9rem; font-weight: bold; color: var(--text-sub); margin-bottom: 15px; }
-    .matrix-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      grid-template-rows: 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 20px;
+    /* エリア表示（地図の代わりにスッキリとしたテキスト枠） */
+    .area-container {
+      background: var(--card-bg); border-radius: 12px; padding: 15px; margin-bottom: 25px; 
+      text-align: center; box-shadow: 0 4px 16px rgba(0,0,0,0.04);
     }
+    .area-text { font-weight: bold; font-size: 0.95rem; color: var(--text-main); margin: 0; line-height: 1.6; }
+    .area-sub { font-size: 0.8rem; color: var(--primary); }
+
+    .matrix-title { text-align: center; font-size: 0.9rem; font-weight: bold; color: var(--text-sub); margin-bottom: 15px; }
+    .matrix-grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
     .quad-btn {
       border: none; border-radius: 16px; padding: 20px 10px; text-align: center; cursor: pointer;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08); transition: transform 0.1s;
-      display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 110px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08); display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 110px;
     }
-    .quad-btn:active { transform: scale(0.96); }
     .quad-btn.selected { outline: 3px solid #1C1C1E; outline-offset: 2px; }
-
     .q1 { background: linear-gradient(135deg, #FFEDD2 0%, #FFCBA4 100%); color: #D84315; }
     .q3 { background: linear-gradient(135deg, #FFDDE1 0%, #EE9CA7 100%); color: #C62828; }
     .q2 { background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%); color: #2E7D32; }
     .q4 { background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%); color: #1565C0; }
-
     .quad-axis { font-size: 0.65rem; font-weight: bold; opacity: 0.8; margin-bottom: 4px; }
-    .quad-title { font-size: 1.05rem; font-weight: 800; margin-bottom: 4px; letter-spacing: -0.5px; }
+    .quad-title { font-size: 1.05rem; font-weight: 800; margin-bottom: 4px; }
     .quad-desc { font-size: 0.7rem; font-weight: 600; opacity: 0.85; }
 
-    /* ガチャボタン */
     .gacha-btn {
       width: 100%; padding: 16px; margin-bottom: 30px; border: none; border-radius: 14px;
-      background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-      color: #FFF; font-size: 1.1rem; font-weight: 800; cursor: pointer;
-      box-shadow: 0 6px 16px rgba(255, 165, 0, 0.3); text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+      background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: #FFF; font-size: 1rem; font-weight: 800; cursor: pointer;
     }
-    .gacha-btn:active { transform: scale(0.98); }
 
-    /* ショップカード */
-    .shop-card { 
-      background: var(--card-bg); padding: 18px; margin-bottom: 16px; border-radius: 16px; 
-      box-shadow: 0 4px 16px rgba(0,0,0,0.06); animation: fadeIn 0.4s ease-out;
-    }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
-
+    .shop-card { background: var(--card-bg); padding: 18px; margin-bottom: 16px; border-radius: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
     .shop-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
     .shop-name { font-size: 1.2rem; font-weight: 800; }
     .status { padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 800; }
     .is-open { background: #E8F5E9; color: #2E7D32; }
     .is-closed { background: #F2F2F7; color: var(--text-sub); }
-    
     .shop-city { font-size: 0.85rem; color: var(--text-sub); margin-bottom: 12px; }
     .shop-desc { font-size: 0.95rem; line-height: 1.5; margin-bottom: 14px; }
     .distance { font-weight: 800; margin-bottom: 12px; font-size: 1.1rem; color: var(--text-main); }
-    .route-link { 
-      display: flex; justify-content: center; padding: 14px; background: #1C1C1E; 
-      color: #fff; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 0.95rem; 
-    }
-    
-    /* 報告リンク */
-    .report-link-container { margin-top: 15px; border-top: 1px dashed #E5E5EA; padding-top: 12px; text-align: right; }
-    .report-link { color: var(--primary); font-size: 0.8rem; text-decoration: none; font-weight: bold; }
-    /* --- アフィリエイト広告枠のスタイル --- */
-    .ad-container {
-      margin-top: 30px;
-      padding: 16px;
-      background: #FFF9E6; /* 目を引くが嫌悪感のない薄い黄色 */
-      border: 2px dashed #FFCA28;
-      border-radius: 12px;
-      text-align: center;
-      animation: fadeIn 0.8s ease-out;
-    }
-    .ad-title {
-      font-weight: 800;
-      color: #D84315;
-      margin-bottom: 8px;
-      font-size: 1rem;
-    }
-    .ad-desc {
-      font-size: 0.8rem;
-      color: #555;
-      margin-bottom: 15px;
-      line-height: 1.4;
-    }
-    .ad-link-btn {
-      display: block;
-      width: 100%;
-      padding: 14px;
-      margin-bottom: 10px;
-      border-radius: 8px;
-      font-weight: 700;
-      text-decoration: none;
-      color: white;
-      font-size: 0.9rem;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .ad-amazon { background: #FF9900; }
-    .ad-amazon:active { background: #E68A00; }
-    .ad-rakuten { background: #BF0000; }
-    .ad-rakuten:active { background: #990000; }
+    .route-link { display: flex; justify-content: center; padding: 14px; background: #1C1C1E; color: #fff; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 0.95rem; }
+    .ad-container { margin-top: 30px; padding: 16px; background: #FFF9E6; border: 2px dashed #FFCA28; border-radius: 12px; text-align: center; }
+    .ad-link-btn { display: block; width: 100%; padding: 14px; margin-bottom: 10px; border-radius: 8px; font-weight: 700; text-decoration: none; color: white; }
+    .ad-amazon { background: #FF9900; } .ad-rakuten { background: #BF0000; }
   </style>
 </head>
-<body>
+<body class="lang-ja">
 
   <header>
-    <h1>🍜 新川ラーメン 感情サーチ</h1>
+    <a href="#" onclick="goHome(); return false;" title="ホームに戻る">
+      <h1>
+        <span class="ja">🍜 富山ラーメンサーチ</span>
+        <span class="en">🍜 Toyama Ramen Search</span>
+      </h1>
+    </a>
+    <button class="lang-btn" onclick="toggleLang()">
+      <span class="ja">🌐 English</span>
+      <span class="en">🌐 日本語</span>
+    </button>
   </header>
 
   <div class="container">
-    <div class="matrix-title">今の気分・本能をタップして探す</div>
-    
-    <!-- 十字マトリクス -->
-    <div class="matrix-grid">
-      <button class="quad-btn q1" onclick="findRamen('q1', this)">
-        <div class="quad-axis">こってり × 昔ながら</div><div class="quad-title">王道ガッツリ</div><div class="quad-desc">富山のソウルフード</div>
-      </button>
-      <button class="quad-btn q3" onclick="findRamen('q3', this)">
-        <div class="quad-axis">こってり × 進化系</div><div class="quad-title">本能むき出し</div><div class="quad-desc">ジャンク＆濃厚の新定番</div>
-      </button>
-      <button class="quad-btn q2" onclick="findRamen('q2', this)">
-        <div class="quad-axis">あっさり × 昔ながら</div><div class="quad-title">ほっとする癒やし</div><div class="quad-desc">町中華と食堂</div>
-      </button>
-      <button class="quad-btn q4" onclick="findRamen('q4', this)">
-        <div class="quad-axis">あっさり × 進化系</div><div class="quad-title">洗練の一滴</div><div class="quad-desc">美麗クリアスープ</div>
-      </button>
-    </div>
-
-    <!-- ラーメンガチャボタン -->
-    <button class="gacha-btn" onclick="playGacha()">🎲 おまかせラーメンガチャを回す</button>
-
-    <div id="result">
-      <p style="text-align:center; color:#8E8E93; font-weight:bold; margin-top:10px;">
-        ボタンをタップすると現在地から近い店舗が表示されます
+    <!-- シンプルなテキストのエリア表示に変更 -->
+    <div class="area-container">
+      <p class="area-text">
+        <span class="ja">📍現在の制覇エリア：魚津・黒部・滑川・入善・朝日<br><span class="area-sub">（順次拡大中！）</span></span>
+        <span class="en">📍Current Area: Uozu, Kurobe, Namerikawa, Nyuzen, Asahi<br><span class="area-sub">(Expanding!)</span></span>
       </p>
     </div>
-  </div>
+
+    <div class="matrix-title">
+      <span class="ja">今の気分・本能をタップして探す</span>
+      <span class="en">Tap your mood to search</span>
+    </div>
+    
+    <div class="matrix-grid">
+      <button class="quad-btn q1" onclick="findRamen('q1', this)">
+        <div class="quad-axis"><span class="ja">こってり × 昔ながら</span><span class="en">Rich × Traditional</span></div>
+        <div class="quad-title"><span class="ja">王道ガッツリ</span><span class="en">Classic Hearty</span></div>
+        <div class="quad-desc"><span class="ja">富山のソウルフード</span><span class="en">Toyama's Soul Food</span></div>
+      </button>
+      <button class="quad-btn q3" onclick="findRamen('q3', this)">
+        <div class="quad-axis"><span class="ja">こってり × 進化系</span><span class="en">Rich × Modern</span></div>
+        <div class="quad-title"><span class="ja">本能むき出し</span><span class="en">Instinctive</span></div>
+        <div class="quad-desc"><span class="ja">ジャンク＆濃厚</span><span class="en">Junk & Heavy</span></div>
+      </button>
+      <button class="quad-btn q2" onclick="findRamen('q2', this)">
+        <div class="quad-axis"><span class="ja">あっさり × 昔ながら</span><span class="en">Light × Traditional</span></div>
+        <div class="quad-title"><span class="ja">ほっとする癒やし</span><span class="en">Comforting</span></div>
+        <div class="quad-desc"><span class="ja">町中華と食堂</span><span class="en">Local Diners</span></div>
+      </button>
+      <button class="quad-btn q4" onclick="findRamen('q4', this)">
+        <div class="quad-axis"><span class="ja">あっさり × 進化系</span><span class="en">Light × Modern</span></div>
+        <div class="quad-title"><span class="ja">洗練の一滴</span><span class="en">Refined Drop</span></div>
+        <div class="quad-desc"><span class="ja">美麗クリアスープ</span><span class="en">Clear & Beautiful</span></div>
+      </button>
+    </div>
+
+    <button class="gacha-btn" onclick="playGacha()">
+      <span class="ja">🎲 おまかせラーメンガチャを回す</span>
+      <span class="en">🎲 Spin the Random Ramen Gacha</span>
+    </button>
+
+<div id="result">
+      <p style="text-align:center; color:#8E8E93; font-weight:bold; margin-top:10px; margin-bottom:20px;">
+        <span class="ja">ボタンをタップすると現在地から近い店舗が表示されます</span>
+        <span class="en">Tap a button to display nearby shops</span>
+      </p>
+      
+      <!-- ホーム画面用の広告 -->
+      <div class="ad-container">
+        <div style="font-weight:800; color:#D84315; margin-bottom:8px;">
+          <span class="ja">🍜 富山ブラックラーメンを家で楽しみたい方へ</span><span class="en">🍜 Want to enjoy famous ramen at home?</span>
+        </div>
+        <div style="font-size:0.8rem; color:#555; margin-bottom:15px;">
+          <span class="ja">深夜や休業日で全滅した時の備えにお取り寄せ！</span>
+          <span class="en">Order online as a backup for midnight cravings!</span>
+        </div>
+        <a href="https://link.amazon/B005mf2Mu" target="_blank" class="ad-link-btn ad-amazon"><span class="ja">Amazonで探す</span><span class="en">Search on Amazon</span></a>
+        <a href="https://www.rakuten.co.jp/" target="_blank" class="ad-link-btn ad-rakuten"><span class="ja">楽天市場で探す</span><span class="en">Search on Rakuten</span></a>
+      </div>
+    </div>
 
   <script>
-    // 全32店舗データ（変更なし）
+    function toggleLang() {
+      const isJa = document.body.classList.contains('lang-ja');
+      document.body.classList.remove(isJa ? 'lang-ja' : 'lang-en');
+      document.body.classList.add(isJa ? 'lang-en' : 'lang-ja');
+    }
+
+     function goHome() {
+      document.querySelectorAll('.quad-btn').forEach(btn => btn.classList.remove('selected'));
+      document.getElementById("result").innerHTML = `
+        <p style="text-align:center; color:#8E8E93; font-weight:bold; margin-top:10px; margin-bottom:20px;">
+          <span class="ja">ボタンをタップすると現在地から近い店舗が表示されます</span>
+          <span class="en">Tap a button to display nearby shops</span>
+        </p>
+        ${getAdHtml()}
+      `;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // 全44店舗データ（リアルな営業時間・定休日・中休みを適用済み）
+    // closedDays: 0=日, 1=月, 2=火, 3=水, 4=木, 5=金, 6=土
     const shops = [
-      { name: "食堂 味園", city: "黒部市", lat: 36.896336, lng: 137.428373, quad: "q2", open: 1100, close: 2000, desc: "地元で愛される食堂。定食もラーメンも人気。" },
-      { name: "8番らーめん 黒部店", city: "黒部市", lat: 36.884529, lng: 137.463993, quad: "q2", open: 1100, close: 2200, desc: "北陸のソウルフード。野菜らーめんが定番。" },
-      { name: "お食事 勝どき屋 黒部店", city: "黒部市", lat: 36.890227, lng: 137.463993, quad: "q2", open: 1100, close: 2000, desc: "ボリューム満点のメニューが揃うお食事処。" },
-      { name: "麺家なると 黒部店", city: "黒部市", lat: 36.880685, lng: 137.461311, quad: "q3", open: 1100, close: 2200, desc: "ガッツリ食べたい時の二郎系インスパイア。" },
-      { name: "お食事処 いわた", city: "黒部市", lat: 36.890502, lng: 137.447320, quad: "q2", open: 1100, close: 2000, desc: "昔ながらのホッとする中華そばと丼もの。" },
-      { name: "ノートンノーヌードル", city: "黒部市", lat: 36.868131, lng: 137.451919, quad: "q4", open: 1100, close: 1500, desc: "こだわりのスープと自家製麺。洗練された一杯。" },
-      { name: "中華そば 麺屋はなと (KOKOくろべ)", city: "黒部市", lat: 36.879885, lng: 137.429166, quad: "q4", open: 1100, close: 1900, desc: "道の駅内。名水ポークを使ったこだわりのチャーシュー。" },
-      { name: "まきば食堂 in FUROBAKKA", city: "黒部市", lat: 36.879987, lng: 137.426901, quad: "q4", open: 1100, close: 2100, desc: "サウナ施設併設。サ飯としてのラーメンが最高。" },
-      { name: "麺と和と、", city: "黒部市", lat: 36.856223, lng: 137.438300, quad: "q4", open: 1100, close: 1500, desc: "和風出汁が効いた繊細で美しいラーメン。" },
-      { name: "ラーメン専門店 くろべぇ", city: "黒部市", lat: 36.854437, lng: 137.438214, quad: "q1", open: 1100, close: 2100, desc: "黒部の老舗ラーメン店。ホロホロのチャーシューが絶品。" },
-      { name: "ヌードル ハーツ", city: "魚津市", lat: 36.834157, lng: 137.418684, quad: "q3", open: 1100, close: 2100, desc: "モチモチ太麺と背脂豚骨醤油のパンチ力。" },
-      { name: "ラーメンはじめ家", city: "魚津市", lat: 36.825845, lng: 137.418255, quad: "q3", open: 1100, close: 2300, desc: "富山唯一の家系直系。破壊力抜群の豚骨醤油。" },
-      { name: "麺飯店天地人", city: "魚津市", lat: 36.824032, lng: 137.415210, quad: "q2", open: 1100, close: 2100, desc: "本格中華とホッとできるラーメンが楽しめる。" },
-      { name: "らーめん世界 富山魚津店", city: "魚津市", lat: 36.822246, lng: 137.413365, quad: "q1", open: 1100, close: 2400, desc: "絶品やきめしと豚骨醤油。安心の深夜営業。" },
-      { name: "ラーメン むてっぽう 魚津店", city: "魚津市", lat: 36.824547, lng: 137.413365, quad: "q1", open: 1100, close: 2100, desc: "香ばしい麦味噌ラーメンがクセになる。" },
-      { name: "ラーメンの店", city: "魚津市", lat: 36.825028, lng: 137.412764, quad: "q2", open: 1100, close: 1500, desc: "地元密着のシンプルで懐かしい一杯。" },
-      { name: "まぜそば なおじ 魚津店", city: "魚津市", lat: 36.825097, lng: 137.414480, quad: "q3", open: 1100, close: 2200, desc: "新潟発祥の燕三条系背脂ラーメン・まぜそば。" },
-      { name: "山久ラーメン", city: "魚津市", lat: 36.824925, lng: 137.409974, quad: "q1", open: 1100, close: 2000, desc: "野菜たっぷりの味噌ラーメン。地元民が通う名店。" },
-      { name: "まるたかや 魚津店", city: "魚津市", lat: 36.828944, lng: 137.411305, quad: "q1", open: 1100, close: 2200, desc: "背脂揚玉とニンニクたっぷりの富山ソウルフード。" },
-      { name: "中国家常菜 竈", city: "魚津市", lat: 36.827914, lng: 137.410275, quad: "q2", open: 1130, close: 2100, desc: "本格的な中華料理店のクオリティの高い麺類。" },
-      { name: "ルバートルチアーノ", city: "魚津市", lat: 36.823482, lng: 137.408129, quad: "q4", open: 1100, close: 2000, desc: "洋風テイストを取り入れたオシャレな創作麺。" },
-      { name: "銀河食堂 掛 COMPLEX STORE", city: "魚津市", lat: 36.824788, lng: 137.406541, quad: "q4", open: 1100, close: 1400, desc: "洗練された空間で啜るこだわりのラーメン。" },
-      { name: "夜ラーメン 桃園", city: "魚津市", lat: 36.825853, lng: 137.406026, quad: "q2", open: 2000, close: 2600, desc: "魚津駅前で飲んだ後の〆に最高な夜専ラーメン。" },
-      { name: "北海", city: "魚津市", lat: 36.824479, lng: 137.403194, quad: "q2", open: 1100, close: 2000, desc: "昔ながらの町中華の味。チャーハンも人気。" },
-      { name: "めん処はまちょう", city: "魚津市", lat: 36.825612, lng: 137.394204, quad: "q2", open: 1100, close: 2000, desc: "うどんや蕎麦と一緒にホッとするラーメンも。" },
-      { name: "四十萬", city: "魚津市", lat: 36.818707, lng: 137.394075, quad: "q2", open: 1100, close: 2000, desc: "定食と麺類が充実した老舗の安心感。" },
-      { name: "手打ラーメンやまや", city: "魚津市", lat: 36.818089, lng: 137.396779, quad: "q2", open: 1100, close: 1900, desc: "あっさり手打ち麺。疲れた胃に染みる優しい味。" },
-      { name: "梵天楼 坊田製麺所", city: "魚津市", lat: 36.814329, lng: 137.408359, quad: "q4", open: 1100, close: 1500, desc: "製麺所直営ならではの確かな麺の美味しさ。" },
-      { name: "二星製麺所 魚津店", city: "魚津市", lat: 36.807669, lng: 137.406253, quad: "q3", open: 1100, close: 1500, desc: "煮干しがガツンと効いた濃厚スープの進化系。" },
-      { name: "ワンチャンラーメン", city: "滑川市", lat: 36.792359, lng: 137.387799, quad: "q2", open: 1100, close: 2000, desc: "ユニークな店名と地元で愛されるクセになる味。" },
-      { name: "くぼ多", city: "滑川市", lat: 36.790234, lng: 137.412908, quad: "q2", open: 1100, close: 2000, desc: "地域に根付いた食堂系ラーメンの代表格。" },
-      { name: "森屋", city: "滑川市", lat: 36.751261, lng: 137.389101, quad: "q2", open: 1100, close: 2000, desc: "これぞ昔ながらの中華そば、という王道の味。" },
-      { name: "城戸食堂", city: "滑川市", lat: 36.781894, lng: 137.375140, quad: "q2", open: 1100, close: 2000, desc: "定食屋さんのホッとするラーメン。" },
-      { name: "油そば まぜ助", city: "滑川市", lat: 36.760958, lng: 137.357373, quad: "q3", open: 1100, close: 2100, desc: "カスタマイズが楽しいジャンクな油そば専門店。" },
-      { name: "8番らーめん 滑川店", city: "滑川市", lat: 36.757236, lng: 137.350657, quad: "q2", open: 1100, close: 2200, desc: "安定と信頼の8番。たっぷり野菜でホッと一息。" },
-      { name: "麺屋 残響", city: "滑川市", lat: 36.756943, lng: 137.349466, quad: "q4", open: 1100, close: 1500, desc: "出汁の旨味が響く、美しくこだわりの一杯。" },
-      { name: "あらき", city: "滑川市", lat: 36.759868, lng: 137.346109, quad: "q2", open: 1100, close: 2000, desc: "地元民に長く親しまれる安心の名店。" },
-      { name: "中華そば 牡丹", city: "滑川市", lat: 36.756847, lng: 137.349161, quad: "q4", open: 1100, close: 1500, desc: "シンプルで奥深いクリアスープが絶品。" },
-      { name: "新潟雪国ラーメン なおじ 滑川店", city: "滑川市", lat: 36.755006, lng: 137.347420, quad: "q3", open: 1100, close: 2200, desc: "背脂の暴力。ガッツリ食べたい時に最適。" },
-      { name: "フードステーションプラント3 滑川店", city: "滑川市", lat: 36.750617, lng: 137.352391, quad: "q1", open: 1100, close: 2000, desc: "PLANT-3内で定番の富山ブラックを堪能。" }
+      // 黒部市
+      { name: "食堂 味園", nameEn: "Shokudo Misono", city: "黒部市", cityEn: "Kurobe", lat: 36.896336, lng: 137.428373, quad: "q2", open: 1100, close: 2000, closedDays: [1], desc: "地元で愛される食堂。定食もラーメンも人気。", descEn: "Beloved local diner. Set meals and ramen." },
+      { name: "8番らーめん 黒部店", nameEn: "Hachiban Ramen Kurobe", city: "黒部市", cityEn: "Kurobe", lat: 36.884529, lng: 137.463993, quad: "q2", open: 1100, close: 2200, closedDays: [], desc: "北陸のソウルフード。野菜らーめんが定番。", descEn: "Hokuriku's soul food. Veggie ramen is a must." },
+      { name: "お食事 勝どき屋 黒部店", nameEn: "Kachidokiya Kurobe", city: "黒部市", cityEn: "Kurobe", lat: 36.890227, lng: 137.463993, quad: "q2", open: 1100, close: 2000, closedDays: [3], desc: "ボリューム満点のメニューが揃うお食事処。", descEn: "Generous portions and hearty meals." },
+      { name: "麺家なると 黒部店", nameEn: "Menya Naruto Kurobe", city: "黒部市", cityEn: "Kurobe", lat: 36.880685, lng: 137.461311, quad: "q3", open: 1100, close: 2200, breakStart: 1500, breakEnd: 1700, closedDays: [1], desc: "ガッツリ食べたい時の二郎系インスパイア。", descEn: "Jiro-style heavy ramen for big appetites." },
+      { name: "お食事処 いわた", nameEn: "Iwata Diner", city: "黒部市", cityEn: "Kurobe", lat: 36.890502, lng: 137.447320, quad: "q2", open: 1100, close: 2000, closedDays: [0], desc: "昔ながらのホッとする中華そばと丼もの。", descEn: "Classic comforting soy sauce ramen." },
+      { name: "ノートンノーヌードル", nameEn: "No Ton No Noodle", city: "黒部市", cityEn: "Kurobe", lat: 36.868131, lng: 137.451919, quad: "q4", open: 1100, close: 1500, closedDays: [2, 3], desc: "こだわりのスープと自家製麺。洗練された一杯。", descEn: "Refined soup and homemade noodles." },
+      { name: "中華そば 麺屋はなと", nameEn: "Menya Hanato", city: "黒部市", cityEn: "Kurobe", lat: 36.879885, lng: 137.429166, quad: "q4", open: 1000, close: 1900, closedDays: [], desc: "道の駅内。名水ポークを使ったこだわりのチャーシュー。", descEn: "Located in roadside station. Premium pork chashu." },
+      { name: "まきば食堂 in FUROBAKKA", nameEn: "Makiba Shokudo", city: "黒部市", cityEn: "Kurobe", lat: 36.879987, lng: 137.426901, quad: "q4", open: 1100, close: 2100, closedDays: [], desc: "サウナ施設併設。サ飯としてのラーメンが最高。", descEn: "Inside a sauna facility. Great post-sauna ramen." },
+      { name: "麺と和と、", nameEn: "Men to Wa to,", city: "黒部市", cityEn: "Kurobe", lat: 36.856223, lng: 137.438300, quad: "q4", open: 1100, close: 1500, closedDays: [1], desc: "和風出汁が効いた繊細で美しいラーメン。", descEn: "Beautiful ramen with a delicate Japanese broth." },
+      { name: "ラーメン専門店 くろべぇ", nameEn: "Kurobee", city: "黒部市", cityEn: "Kurobe", lat: 36.854437, lng: 137.438214, quad: "q1", open: 1100, close: 2100, breakStart: 1500, breakEnd: 1730, closedDays: [1], desc: "黒部の老舗ラーメン店。ホロホロのチャーシューが絶品。", descEn: "Historic shop in Kurobe. Tender chashu." },
+      
+      // 魚津市
+      { name: "ヌードル ハーツ", nameEn: "Noodle Hearts", city: "魚津市", cityEn: "Uozu", lat: 36.834157, lng: 137.418684, quad: "q3", open: 1100, close: 2100, breakStart: 1430, breakEnd: 1730, closedDays: [2], desc: "モチモチ太麺と背脂豚骨醤油のパンチ力。", descEn: "Thick noodles and rich pork-soy broth." },
+      { name: "ラーメンはじめ家", nameEn: "Hajimeya", city: "魚津市", cityEn: "Uozu", lat: 36.825845, lng: 137.418255, quad: "q3", open: 1100, close: 2200, closedDays: [1], desc: "富山唯一の家系直系。破壊力抜群の豚骨醤油。", descEn: "Toyama's only direct Iekei lineage. Powerful flavor." },
+      { name: "麺飯店天地人", nameEn: "Tenchijin", city: "魚津市", cityEn: "Uozu", lat: 36.824032, lng: 137.415210, quad: "q2", open: 1100, close: 2100, breakStart: 1430, breakEnd: 1730, closedDays: [1], desc: "本格中華とホッとできるラーメンが楽しめる。", descEn: "Authentic Chinese dishes and comforting ramen." },
+      { name: "らーめん世界 富山魚津店", nameEn: "Ramen Sekai Uozu", city: "魚津市", cityEn: "Uozu", lat: 36.822246, lng: 137.413365, quad: "q1", open: 1100, close: 2400, closedDays: [], desc: "絶品やきめしと豚骨醤油。安心の深夜営業。", descEn: "Great fried rice and pork-soy ramen. Open late." },
+      { name: "ラーメン むてっぽう 魚津店", nameEn: "Muteppou Uozu", city: "魚津市", cityEn: "Uozu", lat: 36.824547, lng: 137.413365, quad: "q1", open: 1100, close: 2300, breakStart: 1500, breakEnd: 1730, closedDays: [], desc: "濃厚な味噌ラーメンがクセになる。", descEn: "Addictive roasted barley miso ramen." },
+      { name: "ラーメンの店", nameEn: "Ramen no Mise", city: "魚津市", cityEn: "Uozu", lat: 36.825028, lng: 137.412764, quad: "q2", open: 1100, close: 1930, closedDays: [1], desc: "地元密着のシンプルで懐かしい一杯。", descEn: "Simple, nostalgic bowl loved by locals." },
+      { name: "まぜそば なおじ 魚津店", nameEn: "Naoji Uozu", city: "魚津市", cityEn: "Uozu", lat: 36.825097, lng: 137.414480, quad: "q3", open: 1100, close: 2200, closedDays: [3], desc: "新潟発祥の燕三条系背脂ラーメン・まぜそば。", descEn: "Niigata-style back fat ramen and mazesoba." },
+      { name: "山久ラーメン", nameEn: "Yamakyu Ramen", city: "魚津市", cityEn: "Uozu", lat: 36.824925, lng: 137.409974, quad: "q1", open: 1100, close: 2100, breakStart: 1400, breakEnd: 1730, closedDays: [3], desc: "野菜たっぷりの味噌ラーメン。地元民が通う名店。", descEn: "Miso ramen packed with veggies. Local favorite." },
+      { name: "まるたかや 魚津店", nameEn: "Marutakaya Uozu", city: "魚津市", cityEn: "Uozu", lat: 36.828944, lng: 137.411305, quad: "q1", open: 1100, close: 2100, closedDays: [1], desc: "背脂揚玉とニンニクたっぷりの富山ソウルフード。", descEn: "Fried fat and garlic. A Toyama classic." },
+      { name: "中国家常菜 竈", nameEn: "Kamado", city: "魚津市", cityEn: "Uozu", lat: 36.827914, lng: 137.410275, quad: "q2", open: 1130, close: 2100, breakStart: 1400, breakEnd: 1730, closedDays: [2], desc: "本格的な中華料理店のクオリティの高い麺類。", descEn: "High-quality noodles in an authentic Chinese diner." },
+      { name: "ルバートルチアーノ", nameEn: "Rubato Luciano", city: "魚津市", cityEn: "Uozu", lat: 36.823482, lng: 137.408129, quad: "q4", open: 1100, close: 2000, closedDays: [3], desc: "洋風テイストを取り入れたオシャレな創作麺。", descEn: "Creative noodles with a Western culinary twist." },
+      { name: "銀河食堂 掛", nameEn: "Ginga Shokudo Kake", city: "魚津市", cityEn: "Uozu", lat: 36.824788, lng: 137.406541, quad: "q4", open: 1100, close: 1400, closedDays: [1], desc: "洗練された空間で啜るこだわりのラーメン。", descEn: "Carefully crafted ramen in a stylish space." },
+      { name: "夜ラーメン 桃園", nameEn: "Toen Night Ramen", city: "魚津市", cityEn: "Uozu", lat: 36.825853, lng: 137.406026, quad: "q2", open: 2000, close: 2600, closedDays: [0], desc: "魚津駅前で飲んだ後の〆に最高な夜専ラーメン。", descEn: "Night-only shop perfect after drinks near Uozu st." },
+      { name: "北海", nameEn: "Hokkai", city: "魚津市", cityEn: "Uozu", lat: 36.824479, lng: 137.403194, quad: "q2", open: 1130, close: 2100, breakStart: 1400, breakEnd: 1700, closedDays: [3], desc: "昔ながらの町中華の味。チャーハンも人気。", descEn: "Old-school town Chinese flavor. Great fried rice." },
+      { name: "めん処はまちょう", nameEn: "Hamacho", city: "魚津市", cityEn: "Uozu", lat: 36.825612, lng: 137.394204, quad: "q2", open: 1100, close: 2000, closedDays: [3], desc: "うどんや蕎麦と一緒にホッとするラーメンも。", descEn: "Relaxing ramen alongside udon and soba." },
+      { name: "四十萬", nameEn: "Shijima", city: "魚津市", cityEn: "Uozu", lat: 36.818707, lng: 137.394075, quad: "q2", open: 1100, close: 2000, closedDays: [3], desc: "定食と麺類が充実した老舗の安心感。", descEn: "Historic shop with abundant set meals and noodles." },
+      { name: "手打ラーメンやまや", nameEn: "Handmade Ramen Yamaya", city: "魚津市", cityEn: "Uozu", lat: 36.818089, lng: 137.396779, quad: "q2", open: 1100, close: 1900, closedDays: [2], desc: "あっさり手打ち麺。疲れた胃に染みる優しい味。", descEn: "Light handmade noodles. Gentle on a tired stomach." },
+      { name: "梵天楼 坊田製麺所", nameEn: "Bontenrou", city: "魚津市", cityEn: "Uozu", lat: 36.814329, lng: 137.408359, quad: "q4", open: 1100, close: 1500, closedDays: [0], desc: "製麺所直営ならではの確かな麺の美味しさ。", descEn: "Directly managed by a noodle factory. Reliable taste." },
+      { name: "二星製麺所 魚津店", nameEn: "Niboshi Seimenjo Uozu", city: "魚津市", cityEn: "Uozu", lat: 36.807669, lng: 137.406253, quad: "q3", open: 1100, close: 1500, closedDays: [3], desc: "煮干しがガツンと効いた濃厚スープの進化系。", descEn: "Modern heavy soup with a strong dried sardine punch." },
+      
+      // 滑川市
+      { name: "ワンチャンラーメン", nameEn: "Wanchan Ramen", city: "滑川市", cityEn: "Namerikawa", lat: 36.792359, lng: 137.387799, quad: "q2", open: 1100, close: 2000, breakStart: 1400, breakEnd: 1730, closedDays: [1], desc: "ユニークな店名と地元で愛されるクセになる味。", descEn: "Unique name and addictive taste loved by locals." },
+      { name: "くぼ多", nameEn: "Kubota", city: "滑川市", cityEn: "Namerikawa", lat: 36.790234, lng: 137.412908, quad: "q2", open: 1100, close: 2000, breakStart: 1500, breakEnd: 1700, closedDays: [3], desc: "地域に根付いた食堂系ラーメンの代表格。", descEn: "A representative of deeply rooted local diner ramen." },
+      { name: "森屋", nameEn: "Moriya", city: "滑川市", cityEn: "Namerikawa", lat: 36.751261, lng: 137.389101, quad: "q2", open: 1100, close: 2000, closedDays: [1], desc: "これぞ昔ながらの中華そば、という王道の味。", descEn: "The definitive classic soy sauce ramen." },
+      { name: "城戸食堂", nameEn: "Kido Shokudo", city: "滑川市", cityEn: "Namerikawa", lat: 36.781894, lng: 137.375140, quad: "q2", open: 1100, close: 2000, closedDays: [2], desc: "定食屋さんのホッとするラーメン。", descEn: "Heartwarming ramen from a classic Japanese diner." },
+      { name: "油そば まぜ助", nameEn: "Aburasoba Mazesuke", city: "滑川市", cityEn: "Namerikawa", lat: 36.760958, lng: 137.357373, quad: "q3", open: 1100, close: 2100, closedDays: [4], desc: "カスタマイズが楽しいジャンクな油そば専門店。", descEn: "Fun and customizable junk-style soupless noodles." },
+      { name: "8番らーめん 滑川店", nameEn: "Hachiban Ramen Namerikawa", city: "滑川市", cityEn: "Namerikawa", lat: 36.757236, lng: 137.350657, quad: "q2", open: 1100, close: 2200, closedDays: [], desc: "安定と信頼の8番。たっぷり野菜でホッと一息。", descEn: "Reliable Hachiban. Plenty of veggies." },
+      { name: "麺屋 残響", nameEn: "Menya Zankyo", city: "滑川市", cityEn: "Namerikawa", lat: 36.756943, lng: 137.349466, quad: "q4", open: 1100, close: 1500, closedDays: [1], desc: "出汁の旨味が響く、美しくこだわりの一杯。", descEn: "Beautiful bowl echoing with deep umami broth." },
+      { name: "あらき", nameEn: "Araki", city: "滑川市", cityEn: "Namerikawa", lat: 36.759868, lng: 137.346109, quad: "q2", open: 1100, close: 2000, closedDays: [3], desc: "地元民に長く親しまれる安心の名店。", descEn: "Long-standing famous shop cherished by locals." },
+      { name: "中華そば 牡丹", nameEn: "Botan", city: "滑川市", cityEn: "Namerikawa", lat: 36.756847, lng: 137.349161, quad: "q4", open: 1100, close: 1500, closedDays: [4], desc: "シンプルで奥深いクリアスープが絶品。", descEn: "Exquisite, simple yet profound clear soup." },
+      { name: "新潟雪国ラーメン なおじ 滑川店", nameEn: "Naoji Namerikawa", city: "滑川市", cityEn: "Namerikawa", lat: 36.755006, lng: 137.347420, quad: "q3", open: 1100, close: 2200, breakStart: 1500, breakEnd: 1730, closedDays: [2], desc: "背脂の暴力。ガッツリ食べたい時に最適。", descEn: "Violence of back fat. Perfect for huge appetites." },
+      { name: "フードステーションプラント3 滑川店", nameEn: "Plant-3 Namerikawa", city: "滑川市", cityEn: "Namerikawa", lat: 36.750617, lng: 137.352391, quad: "q1", open: 1100, close: 2000, closedDays: [], desc: "PLANT-3内で定番の富山ブラックを堪能。", descEn: "Enjoy standard Toyama Black inside the supermarket." },
+      
+      // 入善町
+      { name: "めん六や 入善店", nameEn: "Menrokuya Nyuzen", city: "入善町", cityEn: "Nyuzen", lat: 36.908215, lng: 137.471969, quad: "q2", open: 1130, close: 1800, closedDays: [], desc: "気軽に立ち寄れるホッとする食堂ラーメン。", descEn: "Casual and comforting diner ramen." },
+      { name: "黄鶴楼", nameEn: "Kokakurou", city: "入善町", cityEn: "Nyuzen", lat: 36.919973, lng: 137.479579, quad: "q2", open: 1100, close: 2100, breakStart: 1400, breakEnd: 1700, closedDays: [3], desc: "本格中華料理店が提供する確かな一杯。", descEn: "Authentic Chinese restaurant noodles." },
+      { name: "つけ麺 勢直", nameEn: "Tsukemen Seichoku", city: "入善町", cityEn: "Nyuzen", lat: 36.931500, lng: 137.497737, quad: "q3", open: 1100, close: 1500, closedDays: [1, 2], desc: "こだわりの濃厚つけ麺が味わえる。", descEn: "Rich and carefully crafted tsukemen." },
+      { name: "ドライブイン入善", nameEn: "Drive-in Nyuzen", city: "入善町", cityEn: "Nyuzen", lat: 36.937772, lng: 137.507372, quad: "q2", open: 1100, close: 2000, closedDays: [1], desc: "昔ながらのドライブインで食べるホッとする味。", descEn: "Comforting taste at an old-school drive-in." },
+      { name: "四川料理 海香村", nameEn: "Sichuan Kaikouson", city: "入善町", cityEn: "Nyuzen", lat: 36.940994, lng: 137.515670, quad: "q2", open: 1100, close: 2200, breakStart: 1430, breakEnd: 1700, closedDays: [2], desc: "スパイスの効いた本格四川の麺料理。", descEn: "Authentic Sichuan noodle dishes with spice." },
+      { name: "8番らーめん 入善店", nameEn: "Hachiban Ramen Nyuzen", city: "入善町", cityEn: "Nyuzen", lat: 36.939681, lng: 137.515170, quad: "q2", open: 1100, close: 2200, closedDays: [], desc: "北陸の定番。たっぷり野菜で大満足。", descEn: "Hokuriku's standard. Satisfying veggie ramen." },
+      { name: "善食居", nameEn: "Zenshokukyo", city: "入善町", cityEn: "Nyuzen", lat: 36.940634, lng: 137.499573, quad: "q2", open: 1100, close: 2000, closedDays: [1], desc: "地元民に親しまれるアットホームなお店。", descEn: "Cozy eatery loved by locals." },
+      { name: "ダイニングuru", nameEn: "Dining uru", city: "入善町", cityEn: "Nyuzen", lat: 36.939203, lng: 137.501273, quad: "q4", open: 1100, close: 2200, breakStart: 1400, breakEnd: 1800, closedDays: [1], desc: "お洒落なダイニングで楽しむ洗練された麺。", descEn: "Refined noodles in a stylish dining bar." },
+      { name: "酒場 音次郎", nameEn: "Sakaba Otojiro", city: "入善町", cityEn: "Nyuzen", lat: 36.941449, lng: 137.499085, quad: "q2", open: 1700, close: 2400, closedDays: [0], desc: "お酒の〆に最高な居酒屋ラーメン。", descEn: "Izakaya ramen, perfect after drinks." },
+      { name: "紙ふうせん", nameEn: "Kamifusen", city: "入善町", cityEn: "Nyuzen", lat: 36.940420, lng: 137.499557, quad: "q2", open: 1100, close: 2000, closedDays: [4], desc: "昔ながらの喫茶・軽食で味わうノスタルジー。", descEn: "Nostalgic taste at a retro cafe/diner." },
+      
+      // 朝日町
+      { name: "元気らーめん", nameEn: "Genki Ramen", city: "朝日町", cityEn: "Asahi", lat: 36.948589, lng: 137.553442, quad: "q1", open: 1100, close: 2130, breakStart: 1430, breakEnd: 1700, closedDays: [4], desc: "スタミナ満点！ガッツリ食べて元気が出る一杯。", descEn: "Stamina-packed hearty ramen to boost your energy." },
+      { name: "結", nameEn: "Yui", city: "朝日町", cityEn: "Asahi", lat: 36.974814, lng: 137.598322, quad: "q4", open: 1100, close: 1430, closedDays: [3], desc: "こだわりのスープが美しい新感覚ラーメン。", descEn: "Modern ramen with a beautifully crafted soup." }
     ];
 
-    // 距離計算
     function getDistance(lat1, lng1, lat2, lng2) {
-      const R = 6371;
-      const dLat = (lat2 - lat1) * Math.PI / 180;
-      const dLng = (lng2 - lng1) * Math.PI / 180;
+      const R = 6371; const dLat = (lat2 - lat1) * Math.PI / 180; const dLng = (lng2 - lng1) * Math.PI / 180;
       const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng/2) * Math.sin(dLng/2);
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
 
-    // 営業時間判定を共通化
     function checkIsOpen(shop, currentTime, currentDay) {
       let isOpen = false;
-      if (shop.close >= 2400) {
-         isOpen = (currentTime >= shop.open) || (currentTime < (shop.close - 2400));
-      } else {
-         isOpen = (currentTime >= shop.open && currentTime < shop.close);
-      }
-      if (isOpen && shop.breakStart && shop.breakEnd) {
-         if (currentTime >= shop.breakStart && currentTime < shop.breakEnd) isOpen = false; 
-      }
+      if (shop.close >= 2400) isOpen = (currentTime >= shop.open) || (currentTime < (shop.close - 2400));
+      else isOpen = (currentTime >= shop.open && currentTime < shop.close);
+      if (isOpen && shop.breakStart && shop.breakEnd) if (currentTime >= shop.breakStart && currentTime < shop.breakEnd) isOpen = false; 
       if (shop.closedDays && shop.closedDays.includes(currentDay)) isOpen = false;
       return isOpen;
     }
+// 営業時間をテキスト表示に変換する関数
+    function getHoursHtml(shop) {
+      const formatTime = (t) => {
+        const h = Math.floor(t / 100);
+        const m = t % 100;
+        return `${h}:${m.toString().padStart(2, '0')}`;
+      };
+      
+      const jaDays = ["日", "月", "火", "水", "木", "金", "土"];
+      const enDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-    // カードのHTMLを生成する共通関数
+      let jaStr = `${formatTime(shop.open)}〜${formatTime(shop.close)}`;
+      let enStr = `${formatTime(shop.open)}-${formatTime(shop.close)}`;
+
+      if (shop.breakStart && shop.breakEnd) {
+         jaStr += ` (中休 ${formatTime(shop.breakStart)}〜${formatTime(shop.breakEnd)})`;
+         enStr += ` (Break ${formatTime(shop.breakStart)}-${formatTime(shop.breakEnd)})`;
+      }
+
+      let jaClosed = shop.closedDays && shop.closedDays.length > 0 ? shop.closedDays.map(d => jaDays[d]).join("・") + "曜" : "なし";
+      let enClosed = shop.closedDays && shop.closedDays.length > 0 ? shop.closedDays.map(d => enDays[d]).join(", ") : "None";
+
+      return `
+        <div style="font-size: 0.8rem; color: #555; margin-bottom: 10px; font-weight: 500;">
+          <span class="ja">🕒 ${jaStr} ｜ 定休: ${jaClosed}</span>
+          <span class="en">🕒 ${enStr} | Closed: ${enClosed}</span>
+        </div>
+      `;
+    }
     function createCardHtml(shop, dist) {
-      const statusHtml = shop.isOpen ? `<span class="status is-open">営業中</span>` : `<span class="status is-closed">準備中/定休</span>`;
       const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${shop.lat},${shop.lng}`;
-      // GoogleフォームのダミーURL。後で自分の作成したフォームURLに差し替えます。
-      const formUrl = `https://docs.google.com/forms/d/e/dummy/viewform?usp=pp_url&entry.12345=${encodeURIComponent(shop.name)}`;
-
       return `
         <div class="shop-card">
           <div class="shop-header">
-            <div class="shop-name">${shop.name}</div>
-            ${statusHtml}
+            <div class="shop-name"><span class="ja">${shop.name}</span><span class="en">${shop.nameEn}</span></div>
+            ${shop.isOpen 
+              ? `<span class="status is-open"><span class="ja">営業中</span><span class="en">Open</span></span>` 
+              : `<span class="status is-closed"><span class="ja">準備中/定休</span><span class="en">Closed</span></span>`}
           </div>
-          <div class="shop-city">📍 ${shop.city}</div>
-          <div class="shop-desc">${shop.desc}</div>
-          <div class="distance">🚗 ここから 約 ${dist.toFixed(1)} km</div>
-          <a class="route-link" href="${mapsUrl}" target="_blank">Googleマップでナビ開始</a>
           
-          <!-- 臨時休業・時間のズレ報告リンク -->
-          <div class="report-link-container">
-            <a href="${formUrl}" target="_blank" class="report-link">🚨 臨時休業・時間のズレを報告する</a>
+          <!-- ★ここを追加：店名の下に営業時間を表示 -->
+          ${getHoursHtml(shop)}
+          
+          <div class="shop-city">📍 <span class="ja">${shop.city}</span><span class="en">${shop.cityEn}</span></div>
+          <div class="shop-desc"><span class="ja">${shop.desc}</span><span class="en">${shop.descEn}</span></div>
+          <div class="distance">
+            <span class="ja">🚗 ここから 約 ${dist.toFixed(1)} km</span>
+            <span class="en">🚗 Approx. ${dist.toFixed(1)} km from here</span>
           </div>
+          <a class="route-link" href="${mapsUrl}" target="_blank">
+            <span class="ja">Googleマップでナビ開始</span><span class="en">Navigate via Google Maps</span>
+          </a>
         </div>
       `;
     }
 
-    // ① マトリクスボタンからの検索処理
+    function getAdHtml() {
+      return `
+        <div class="ad-container">
+          <div style="font-weight:800; color:#D84315; margin-bottom:8px;">
+            <span class="ja">🍜 家でも名店の味を楽しみたい方へ</span><span class="en">🍜 Want to enjoy famous ramen at home?</span>
+          </div>
+          <div style="font-size:0.8rem; color:#555; margin-bottom:15px;">
+            <span class="ja">深夜や休業日で全滅した時の備えにお取り寄せ！</span>
+            <span class="en">Order online as a backup for midnight cravings!</span>
+          </div>
+          <a href="https://www.amazon.co.jp/%E5%AF%BF%E3%81%8C%E3%81%8D%E3%82%84-%E5%85%A8%E5%9B%BD%E9%BA%BA%E3%82%81%E3%81%90%E3%82%8A-%E5%AF%8C%E5%B1%B1%E3%83%96%E3%83%A9%E3%83%83%E3%82%AF%E3%83%A9%E3%83%BC%E3%83%A1%E3%83%B3-108g%C3%9712%E5%80%8B/dp/B075323WT3?crid=GLDXRHRQJWAQ&dib=eyJ2IjoiMSJ9.fdexLrlsgwyXriOh1HnNT4GpdbPIy0AtD3awS-r0ahVysfFGLEQyI9TLZXQJCqX3uUKAF6q1JN6pRKRaW77kiJNcGpZ4eUWBj5wD5q-dw2_nUe1V_rmgQczv-Z5bYruv4u2cQEjphHoCvhIeih1kvXRR5bg1xn3ZSEQ_DPrY1MZ0TF65GJ3DlWL7xLAmHIMIL_pkHpc0jbWwhfZnEhAaezThAFqNW4BSE3KF-bsoS4Qr61Px8UUTY8ccbmiucjHeCtxzxNe8SJPC5Ka2ohn3Mb_xNZlYv7qbe4LRDEmGoec.xP4JYlBqZZbw2kjbKYlPJBwrUi6uK4VYYl7-1Xo7S1s&dib_tag=se&keywords=%E5%AF%8C%E5%B1%B1%E3%83%A9%E3%83%BC%E3%83%A1%E3%83%B3&qid=1794407034&sprefix=%2Caps%2C215&sr=8-1&linkCode=ll2&tag=ramentoyama-22&linkId=dc5d341046c88078a8e5e07558d04e91&ref_=as_li_ss_tl/" target="_blank" class="ad-link-btn ad-amazon"><span class="ja">Amazonで探す</span><span class="en">Search on Amazon</span></a>
+          <a href="https://item.rakuten.co.jp/liquor-boss/12131bc12/" target="_blank" class="ad-link-btn ad-rakuten"><span class="ja">楽天市場で探す</span><span class="en">Search on Rakuten</span></a>
+          </div>
+      `;
+    }
+
     function renderResults(quadrantId, userLat, userLng) {
       const resultDiv = document.getElementById("result");
-      const now = new Date();
-      const currentTime = now.getHours() * 100 + now.getMinutes();
-      const currentDay = now.getDay(); 
+      const now = new Date(); const currentTime = now.getHours() * 100 + now.getMinutes(); const currentDay = now.getDay(); 
 
       let filteredShops = shops.filter(shop => shop.quad === quadrantId).map(shop => {
-        let isOpen = checkIsOpen(shop, currentTime, currentDay);
-        const dist = getDistance(userLat, userLng, shop.lat, shop.lng);
-        return { ...shop, isOpen, dist };
+        return { ...shop, isOpen: checkIsOpen(shop, currentTime, currentDay), dist: getDistance(userLat, userLng, shop.lat, shop.lng) };
       });
-
-      filteredShops.sort((a, b) => {
-        if (a.isOpen === b.isOpen) return a.dist - b.dist;
-        return a.isOpen ? -1 : 1;
-      });
+      filteredShops.sort((a, b) => { if (a.isOpen === b.isOpen) return a.dist - b.dist; return a.isOpen ? -1 : 1; });
 
       resultDiv.innerHTML = "";
       if (filteredShops.length === 0) {
-        resultDiv.innerHTML = "<p style='text-align:center; font-weight:bold; margin-top:20px;'>このエリアには該当する店舗がありません。</p>";
+        resultDiv.innerHTML = `<p style='text-align:center; font-weight:bold; margin-top:20px;'><span class="ja">該当店舗なし</span><span class="en">No shops found</span></p>`;
         return;
       }
       filteredShops.forEach(shop => { resultDiv.innerHTML += createCardHtml(shop, shop.dist); });
-
-      resultDiv.innerHTML += `
-        <div class="ad-container">
-          <div class="ad-title">🍜 家でも名店の味を楽しみたい方へ</div>
-          <div class="ad-desc">富山ブラックや家系ラーメンのお取り寄せ。<br>深夜や休業日で全滅した時の備えに！</div>
-          <a href="【ここにAmazonのアフィリエイトリンクを貼る】" target="_blank" class="ad-link-btn ad-amazon">Amazonでラーメンを探す</a>
-          <a href="【ここに楽天のアフィリエイトリンクを貼る】" target="_blank" class="ad-link-btn ad-rakuten">楽天市場でラーメンを探す</a>
-        </div>
-        `;
+      resultDiv.innerHTML += getAdHtml();
       resultDiv.scrollIntoView({ behavior: "smooth", block: "start" });
     }
 
@@ -306,63 +345,40 @@
       document.querySelectorAll('.quad-btn').forEach(btn => btn.classList.remove('selected'));
       btnElement.classList.add('selected');
       const resultDiv = document.getElementById("result");
-      resultDiv.innerHTML = "<p style='text-align:center; font-weight:bold; margin-top:20px;'>現在地から近い店舗を探しています...</p>";
-
+      resultDiv.innerHTML = `<p style='text-align:center; font-weight:bold; margin-top:20px;'><span class="ja">店舗を探しています...</span><span class="en">Searching for shops...</span></p>`;
       navigator.geolocation.getCurrentPosition(
         position => { renderResults(quadrantId, position.coords.latitude, position.coords.longitude); }, 
-        err => { renderResults(quadrantId, 36.8272, 137.4042); },
-        { timeout: 4000 } 
+        err => { renderResults(quadrantId, 36.8272, 137.4042); }, { timeout: 4000 } 
       );
     }
 
-    // ② ガチャボタンからの処理（現在営業中の店からランダムに1つ）
     function runGacha(userLat, userLng) {
       const resultDiv = document.getElementById("result");
-      const now = new Date();
-      const currentTime = now.getHours() * 100 + now.getMinutes();
-      const currentDay = now.getDay(); 
+      const now = new Date(); const currentTime = now.getHours() * 100 + now.getMinutes(); const currentDay = now.getDay(); 
 
-      // 営業中の店舗だけを抽出
       let openShops = shops.map(shop => {
-        let isOpen = checkIsOpen(shop, currentTime, currentDay);
-        const dist = getDistance(userLat, userLng, shop.lat, shop.lng);
-        return { ...shop, isOpen, dist };
+        return { ...shop, isOpen: checkIsOpen(shop, currentTime, currentDay), dist: getDistance(userLat, userLng, shop.lat, shop.lng) };
       }).filter(shop => shop.isOpen);
 
       if(openShops.length === 0) {
-        resultDiv.innerHTML = "<p style='text-align:center; font-weight:bold; color:var(--primary); margin-top:20px;'>現在営業中の店舗が見つかりませんでした😭<br>時間を空けてお試しください。</p>";
+        resultDiv.innerHTML = `<p style='text-align:center; font-weight:bold; color:var(--primary); margin-top:20px;'><span class="ja">現在営業中の店舗が見つかりませんでした😭</span><span class="en">No open shops found right now😭</span></p>`;
         return;
       }
-
-      // ランダムで1店舗決定
-      const randomIndex = Math.floor(Math.random() * openShops.length);
-      const hitShop = openShops[randomIndex];
-
+      const hitShop = openShops[Math.floor(Math.random() * openShops.length)];
       resultDiv.innerHTML = `
-        <h2 style="text-align:center; color:#FFA500; margin: 20px 0;">🎉 今日の運命の一杯はココ！</h2>
+        <h2 style="text-align:center; color:#FFA500; margin: 20px 0;"><span class="ja">🎉 今日の運命の一杯！</span><span class="en">🎉 Today's Destiny Bowl!</span></h2>
         ${createCardHtml(hitShop, hitShop.dist)}
+        ${getAdHtml()}
       `;
-
-      resultDiv.innerHTML += `
-        <div class="ad-container">
-          <div class="ad-title">🍜 ガチャの結果がピンとこなかったら…</div>
-          <div class="ad-desc">いっそ家で全国の有名ラーメンを食べませんか？</div>
-          <a href="【ここにAmazonのアフィリエイトリンクを貼る】" target="_blank" class="ad-link-btn ad-amazon">Amazonでお取り寄せを見る</a>
-        </div>
-      `;
-      
       resultDiv.scrollIntoView({ behavior: "smooth", block: "start" });
     }
 
     function playGacha() {
       document.querySelectorAll('.quad-btn').forEach(btn => btn.classList.remove('selected'));
-      const resultDiv = document.getElementById("result");
-      resultDiv.innerHTML = "<p style='text-align:center; font-weight:bold; margin-top:20px;'>🎲 運命の1杯を抽選中...</p>";
-
+      document.getElementById("result").innerHTML = `<p style='text-align:center; font-weight:bold; margin-top:20px;'><span class="ja">🎲 抽選中...</span><span class="en">🎲 Spinning...</span></p>`;
       navigator.geolocation.getCurrentPosition(
         position => { runGacha(position.coords.latitude, position.coords.longitude); }, 
-        err => { runGacha(36.8272, 137.4042); },
-        { timeout: 4000 } 
+        err => { runGacha(36.8272, 137.4042); }, { timeout: 4000 } 
       );
     }
   </script>
