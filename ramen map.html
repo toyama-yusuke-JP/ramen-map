@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>新川ラーメン 感情マトリクスサーチ</title>
+  <style>
+    :root { 
+      --bg: #F2F2F7;
+      --card-bg: #FFFFFF; 
+      --text-main: #1C1C1E;
+      --text-sub: #8E8E93;
+      --primary: #E63946;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", "Hiragino Kaku Gothic ProN", "Hiragino Sans", sans-serif; 
+      background: var(--bg); 
+      color: var(--text-main); 
+      padding-bottom: 50px; 
+      -webkit-tap-highlight-color: transparent; 
+    }
+  
+    header {
+      position: sticky;
+      top: 0;
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(10px); 
+      -webkit-backdrop-filter: blur(10px);
+      z-index: 100;
+      padding: 16px 15px;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+      text-align: center;
+    }
+    h1 { font-size: 1.1rem; font-weight: 800; color: var(--text-main); }
+  
+    .container { padding: 15px; }
+
+    /* マトリクスUI */
+    .matrix-title { text-align: center; font-size: 0.9rem; font-weight: bold; color: var(--text-sub); margin-bottom: 15px; }
+    .matrix-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .quad-btn {
+      border: none; border-radius: 16px; padding: 20px 10px; text-align: center; cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08); transition: transform 0.1s;
+      display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 110px;
+    }
+    .quad-btn:active { transform: scale(0.96); }
+    .quad-btn.selected { outline: 3px solid #1C1C1E; outline-offset: 2px; }
+
+    .q1 { background: linear-gradient(135deg, #FFEDD2 0%, #FFCBA4 100%); color: #D84315; }
+    .q3 { background: linear-gradient(135deg, #FFDDE1 0%, #EE9CA7 100%); color: #C62828; }
+    .q2 { background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%); color: #2E7D32; }
+    .q4 { background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%); color: #1565C0; }
+
+    .quad-axis { font-size: 0.65rem; font-weight: bold; opacity: 0.8; margin-bottom: 4px; }
+    .quad-title { font-size: 1.05rem; font-weight: 800; margin-bottom: 4px; letter-spacing: -0.5px; }
+    .quad-desc { font-size: 0.7rem; font-weight: 600; opacity: 0.85; }
+
+    /* ガチャボタン */
+    .gacha-btn {
+      width: 100%; padding: 16px; margin-bottom: 30px; border: none; border-radius: 14px;
+      background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+      color: #FFF; font-size: 1.1rem; font-weight: 800; cursor: pointer;
+      box-shadow: 0 6px 16px rgba(255, 165, 0, 0.3); text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    }
+    .gacha-btn:active { transform: scale(0.98); }
+
+    /* ショップカード */
+    .shop-card { 
+      background: var(--card-bg); padding: 18px; margin-bottom: 16px; border-radius: 16px; 
+      box-shadow: 0 4px 16px rgba(0,0,0,0.06); animation: fadeIn 0.4s ease-out;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+    .shop-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .shop-name { font-size: 1.2rem; font-weight: 800; }
+    .status { padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 800; }
+    .is-open { background: #E8F5E9; color: #2E7D32; }
+    .is-closed { background: #F2F2F7; color: var(--text-sub); }
+    
+    .shop-city { font-size: 0.85rem; color: var(--text-sub); margin-bottom: 12px; }
+    .shop-desc { font-size: 0.95rem; line-height: 1.5; margin-bottom: 14px; }
+    .distance { font-weight: 800; margin-bottom: 12px; font-size: 1.1rem; color: var(--text-main); }
+    .route-link { 
+      display: flex; justify-content: center; padding: 14px; background: #1C1C1E; 
+      color: #fff; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 0.95rem; 
+    }
+    
+    /* 報告リンク */
+    .report-link-container { margin-top: 15px; border-top: 1px dashed #E5E5EA; padding-top: 12px; text-align: right; }
+    .report-link { color: var(--primary); font-size: 0.8rem; text-decoration: none; font-weight: bold; }
+    /* --- アフィリエイト広告枠のスタイル --- */
+    .ad-container {
+      margin-top: 30px;
+      padding: 16px;
+      background: #FFF9E6; /* 目を引くが嫌悪感のない薄い黄色 */
+      border: 2px dashed #FFCA28;
+      border-radius: 12px;
+      text-align: center;
+      animation: fadeIn 0.8s ease-out;
+    }
+    .ad-title {
+      font-weight: 800;
+      color: #D84315;
+      margin-bottom: 8px;
+      font-size: 1rem;
+    }
+    .ad-desc {
+      font-size: 0.8rem;
+      color: #555;
+      margin-bottom: 15px;
+      line-height: 1.4;
+    }
+    .ad-link-btn {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      font-weight: 700;
+      text-decoration: none;
+      color: white;
+      font-size: 0.9rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .ad-amazon { background: #FF9900; }
+    .ad-amazon:active { background: #E68A00; }
+    .ad-rakuten { background: #BF0000; }
+    .ad-rakuten:active { background: #990000; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🍜 新川ラーメン 感情サーチ</h1>
+  </header>
+
+  <div class="container">
+    <div class="matrix-title">今の気分・本能をタップして探す</div>
+    
+    <!-- 十字マトリクス -->
+    <div class="matrix-grid">
+      <button class="quad-btn q1" onclick="findRamen('q1', this)">
+        <div class="quad-axis">こってり × 昔ながら</div><div class="quad-title">王道ガッツリ</div><div class="quad-desc">富山のソウルフード</div>
+      </button>
+      <button class="quad-btn q3" onclick="findRamen('q3', this)">
+        <div class="quad-axis">こってり × 進化系</div><div class="quad-title">本能むき出し</div><div class="quad-desc">ジャンク＆濃厚の新定番</div>
+      </button>
+      <button class="quad-btn q2" onclick="findRamen('q2', this)">
+        <div class="quad-axis">あっさり × 昔ながら</div><div class="quad-title">ほっとする癒やし</div><div class="quad-desc">町中華と食堂</div>
+      </button>
+      <button class="quad-btn q4" onclick="findRamen('q4', this)">
+        <div class="quad-axis">あっさり × 進化系</div><div class="quad-title">洗練の一滴</div><div class="quad-desc">美麗クリアスープ</div>
+      </button>
+    </div>
+
+    <!-- ラーメンガチャボタン -->
+    <button class="gacha-btn" onclick="playGacha()">🎲 おまかせラーメンガチャを回す</button>
+
+    <div id="result">
+      <p style="text-align:center; color:#8E8E93; font-weight:bold; margin-top:10px;">
+        ボタンをタップすると現在地から近い店舗が表示されます
+      </p>
+    </div>
+  </div>
+
+  <script>
+    // 全32店舗データ（変更なし）
+    const shops = [
+      { name: "食堂 味園", city: "黒部市", lat: 36.896336, lng: 137.428373, quad: "q2", open: 1100, close: 2000, desc: "地元で愛される食堂。定食もラーメンも人気。" },
+      { name: "8番らーめん 黒部店", city: "黒部市", lat: 36.884529, lng: 137.463993, quad: "q2", open: 1100, close: 2200, desc: "北陸のソウルフード。野菜らーめんが定番。" },
+      { name: "お食事 勝どき屋 黒部店", city: "黒部市", lat: 36.890227, lng: 137.463993, quad: "q2", open: 1100, close: 2000, desc: "ボリューム満点のメニューが揃うお食事処。" },
+      { name: "麺家なると 黒部店", city: "黒部市", lat: 36.880685, lng: 137.461311, quad: "q3", open: 1100, close: 2200, desc: "ガッツリ食べたい時の二郎系インスパイア。" },
+      { name: "お食事処 いわた", city: "黒部市", lat: 36.890502, lng: 137.447320, quad: "q2", open: 1100, close: 2000, desc: "昔ながらのホッとする中華そばと丼もの。" },
+      { name: "ノートンノーヌードル", city: "黒部市", lat: 36.868131, lng: 137.451919, quad: "q4", open: 1100, close: 1500, desc: "こだわりのスープと自家製麺。洗練された一杯。" },
+      { name: "中華そば 麺屋はなと (KOKOくろべ)", city: "黒部市", lat: 36.879885, lng: 137.429166, quad: "q4", open: 1100, close: 1900, desc: "道の駅内。名水ポークを使ったこだわりのチャーシュー。" },
+      { name: "まきば食堂 in FUROBAKKA", city: "黒部市", lat: 36.879987, lng: 137.426901, quad: "q4", open: 1100, close: 2100, desc: "サウナ施設併設。サ飯としてのラーメンが最高。" },
+      { name: "麺と和と、", city: "黒部市", lat: 36.856223, lng: 137.438300, quad: "q4", open: 1100, close: 1500, desc: "和風出汁が効いた繊細で美しいラーメン。" },
+      { name: "ラーメン専門店 くろべぇ", city: "黒部市", lat: 36.854437, lng: 137.438214, quad: "q1", open: 1100, close: 2100, desc: "黒部の老舗ラーメン店。ホロホロのチャーシューが絶品。" },
+      { name: "ヌードル ハーツ", city: "魚津市", lat: 36.834157, lng: 137.418684, quad: "q3", open: 1100, close: 2100, desc: "モチモチ太麺と背脂豚骨醤油のパンチ力。" },
+      { name: "ラーメンはじめ家", city: "魚津市", lat: 36.825845, lng: 137.418255, quad: "q3", open: 1100, close: 2300, desc: "富山唯一の家系直系。破壊力抜群の豚骨醤油。" },
+      { name: "麺飯店天地人", city: "魚津市", lat: 36.824032, lng: 137.415210, quad: "q2", open: 1100, close: 2100, desc: "本格中華とホッとできるラーメンが楽しめる。" },
+      { name: "らーめん世界 富山魚津店", city: "魚津市", lat: 36.822246, lng: 137.413365, quad: "q1", open: 1100, close: 2400, desc: "絶品やきめしと豚骨醤油。安心の深夜営業。" },
+      { name: "ラーメン むてっぽう 魚津店", city: "魚津市", lat: 36.824547, lng: 137.413365, quad: "q1", open: 1100, close: 2100, desc: "香ばしい麦味噌ラーメンがクセになる。" },
+      { name: "ラーメンの店", city: "魚津市", lat: 36.825028, lng: 137.412764, quad: "q2", open: 1100, close: 1500, desc: "地元密着のシンプルで懐かしい一杯。" },
+      { name: "まぜそば なおじ 魚津店", city: "魚津市", lat: 36.825097, lng: 137.414480, quad: "q3", open: 1100, close: 2200, desc: "新潟発祥の燕三条系背脂ラーメン・まぜそば。" },
+      { name: "山久ラーメン", city: "魚津市", lat: 36.824925, lng: 137.409974, quad: "q1", open: 1100, close: 2000, desc: "野菜たっぷりの味噌ラーメン。地元民が通う名店。" },
+      { name: "まるたかや 魚津店", city: "魚津市", lat: 36.828944, lng: 137.411305, quad: "q1", open: 1100, close: 2200, desc: "背脂揚玉とニンニクたっぷりの富山ソウルフード。" },
+      { name: "中国家常菜 竈", city: "魚津市", lat: 36.827914, lng: 137.410275, quad: "q2", open: 1130, close: 2100, desc: "本格的な中華料理店のクオリティの高い麺類。" },
+      { name: "ルバートルチアーノ", city: "魚津市", lat: 36.823482, lng: 137.408129, quad: "q4", open: 1100, close: 2000, desc: "洋風テイストを取り入れたオシャレな創作麺。" },
+      { name: "銀河食堂 掛 COMPLEX STORE", city: "魚津市", lat: 36.824788, lng: 137.406541, quad: "q4", open: 1100, close: 1400, desc: "洗練された空間で啜るこだわりのラーメン。" },
+      { name: "夜ラーメン 桃園", city: "魚津市", lat: 36.825853, lng: 137.406026, quad: "q2", open: 2000, close: 2600, desc: "魚津駅前で飲んだ後の〆に最高な夜専ラーメン。" },
+      { name: "北海", city: "魚津市", lat: 36.824479, lng: 137.403194, quad: "q2", open: 1100, close: 2000, desc: "昔ながらの町中華の味。チャーハンも人気。" },
+      { name: "めん処はまちょう", city: "魚津市", lat: 36.825612, lng: 137.394204, quad: "q2", open: 1100, close: 2000, desc: "うどんや蕎麦と一緒にホッとするラーメンも。" },
+      { name: "四十萬", city: "魚津市", lat: 36.818707, lng: 137.394075, quad: "q2", open: 1100, close: 2000, desc: "定食と麺類が充実した老舗の安心感。" },
+      { name: "手打ラーメンやまや", city: "魚津市", lat: 36.818089, lng: 137.396779, quad: "q2", open: 1100, close: 1900, desc: "あっさり手打ち麺。疲れた胃に染みる優しい味。" },
+      { name: "梵天楼 坊田製麺所", city: "魚津市", lat: 36.814329, lng: 137.408359, quad: "q4", open: 1100, close: 1500, desc: "製麺所直営ならではの確かな麺の美味しさ。" },
+      { name: "二星製麺所 魚津店", city: "魚津市", lat: 36.807669, lng: 137.406253, quad: "q3", open: 1100, close: 1500, desc: "煮干しがガツンと効いた濃厚スープの進化系。" },
+      { name: "ワンチャンラーメン", city: "滑川市", lat: 36.792359, lng: 137.387799, quad: "q2", open: 1100, close: 2000, desc: "ユニークな店名と地元で愛されるクセになる味。" },
+      { name: "くぼ多", city: "滑川市", lat: 36.790234, lng: 137.412908, quad: "q2", open: 1100, close: 2000, desc: "地域に根付いた食堂系ラーメンの代表格。" },
+      { name: "森屋", city: "滑川市", lat: 36.751261, lng: 137.389101, quad: "q2", open: 1100, close: 2000, desc: "これぞ昔ながらの中華そば、という王道の味。" },
+      { name: "城戸食堂", city: "滑川市", lat: 36.781894, lng: 137.375140, quad: "q2", open: 1100, close: 2000, desc: "定食屋さんのホッとするラーメン。" },
+      { name: "油そば まぜ助", city: "滑川市", lat: 36.760958, lng: 137.357373, quad: "q3", open: 1100, close: 2100, desc: "カスタマイズが楽しいジャンクな油そば専門店。" },
+      { name: "8番らーめん 滑川店", city: "滑川市", lat: 36.757236, lng: 137.350657, quad: "q2", open: 1100, close: 2200, desc: "安定と信頼の8番。たっぷり野菜でホッと一息。" },
+      { name: "麺屋 残響", city: "滑川市", lat: 36.756943, lng: 137.349466, quad: "q4", open: 1100, close: 1500, desc: "出汁の旨味が響く、美しくこだわりの一杯。" },
+      { name: "あらき", city: "滑川市", lat: 36.759868, lng: 137.346109, quad: "q2", open: 1100, close: 2000, desc: "地元民に長く親しまれる安心の名店。" },
+      { name: "中華そば 牡丹", city: "滑川市", lat: 36.756847, lng: 137.349161, quad: "q4", open: 1100, close: 1500, desc: "シンプルで奥深いクリアスープが絶品。" },
+      { name: "新潟雪国ラーメン なおじ 滑川店", city: "滑川市", lat: 36.755006, lng: 137.347420, quad: "q3", open: 1100, close: 2200, desc: "背脂の暴力。ガッツリ食べたい時に最適。" },
+      { name: "フードステーションプラント3 滑川店", city: "滑川市", lat: 36.750617, lng: 137.352391, quad: "q1", open: 1100, close: 2000, desc: "PLANT-3内で定番の富山ブラックを堪能。" }
+    ];
+
+    // 距離計算
+    function getDistance(lat1, lng1, lat2, lng2) {
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLng = (lng2 - lng1) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng/2) * Math.sin(dLng/2);
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+
+    // 営業時間判定を共通化
+    function checkIsOpen(shop, currentTime, currentDay) {
+      let isOpen = false;
+      if (shop.close >= 2400) {
+         isOpen = (currentTime >= shop.open) || (currentTime < (shop.close - 2400));
+      } else {
+         isOpen = (currentTime >= shop.open && currentTime < shop.close);
+      }
+      if (isOpen && shop.breakStart && shop.breakEnd) {
+         if (currentTime >= shop.breakStart && currentTime < shop.breakEnd) isOpen = false; 
+      }
+      if (shop.closedDays && shop.closedDays.includes(currentDay)) isOpen = false;
+      return isOpen;
+    }
+
+    // カードのHTMLを生成する共通関数
+    function createCardHtml(shop, dist) {
+      const statusHtml = shop.isOpen ? `<span class="status is-open">営業中</span>` : `<span class="status is-closed">準備中/定休</span>`;
+      const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${shop.lat},${shop.lng}`;
+      // GoogleフォームのダミーURL。後で自分の作成したフォームURLに差し替えます。
+      const formUrl = `https://docs.google.com/forms/d/e/dummy/viewform?usp=pp_url&entry.12345=${encodeURIComponent(shop.name)}`;
+
+      return `
+        <div class="shop-card">
+          <div class="shop-header">
+            <div class="shop-name">${shop.name}</div>
+            ${statusHtml}
+          </div>
+          <div class="shop-city">📍 ${shop.city}</div>
+          <div class="shop-desc">${shop.desc}</div>
+          <div class="distance">🚗 ここから 約 ${dist.toFixed(1)} km</div>
+          <a class="route-link" href="${mapsUrl}" target="_blank">Googleマップでナビ開始</a>
+          
+          <!-- 臨時休業・時間のズレ報告リンク -->
+          <div class="report-link-container">
+            <a href="${formUrl}" target="_blank" class="report-link">🚨 臨時休業・時間のズレを報告する</a>
+          </div>
+        </div>
+      `;
+    }
+
+    // ① マトリクスボタンからの検索処理
+    function renderResults(quadrantId, userLat, userLng) {
+      const resultDiv = document.getElementById("result");
+      const now = new Date();
+      const currentTime = now.getHours() * 100 + now.getMinutes();
+      const currentDay = now.getDay(); 
+
+      let filteredShops = shops.filter(shop => shop.quad === quadrantId).map(shop => {
+        let isOpen = checkIsOpen(shop, currentTime, currentDay);
+        const dist = getDistance(userLat, userLng, shop.lat, shop.lng);
+        return { ...shop, isOpen, dist };
+      });
+
+      filteredShops.sort((a, b) => {
+        if (a.isOpen === b.isOpen) return a.dist - b.dist;
+        return a.isOpen ? -1 : 1;
+      });
+
+      resultDiv.innerHTML = "";
+      if (filteredShops.length === 0) {
+        resultDiv.innerHTML = "<p style='text-align:center; font-weight:bold; margin-top:20px;'>このエリアには該当する店舗がありません。</p>";
+        return;
+      }
+      filteredShops.forEach(shop => { resultDiv.innerHTML += createCardHtml(shop, shop.dist); });
+
+      resultDiv.innerHTML += `
+        <div class="ad-container">
+          <div class="ad-title">🍜 家でも名店の味を楽しみたい方へ</div>
+          <div class="ad-desc">富山ブラックや家系ラーメンのお取り寄せ。<br>深夜や休業日で全滅した時の備えに！</div>
+          <a href="【ここにAmazonのアフィリエイトリンクを貼る】" target="_blank" class="ad-link-btn ad-amazon">Amazonでラーメンを探す</a>
+          <a href="【ここに楽天のアフィリエイトリンクを貼る】" target="_blank" class="ad-link-btn ad-rakuten">楽天市場でラーメンを探す</a>
+        </div>
+        `;
+      resultDiv.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function findRamen(quadrantId, btnElement) {
+      document.querySelectorAll('.quad-btn').forEach(btn => btn.classList.remove('selected'));
+      btnElement.classList.add('selected');
+      const resultDiv = document.getElementById("result");
+      resultDiv.innerHTML = "<p style='text-align:center; font-weight:bold; margin-top:20px;'>現在地から近い店舗を探しています...</p>";
+
+      navigator.geolocation.getCurrentPosition(
+        position => { renderResults(quadrantId, position.coords.latitude, position.coords.longitude); }, 
+        err => { renderResults(quadrantId, 36.8272, 137.4042); },
+        { timeout: 4000 } 
+      );
+    }
+
+    // ② ガチャボタンからの処理（現在営業中の店からランダムに1つ）
+    function runGacha(userLat, userLng) {
+      const resultDiv = document.getElementById("result");
+      const now = new Date();
+      const currentTime = now.getHours() * 100 + now.getMinutes();
+      const currentDay = now.getDay(); 
+
+      // 営業中の店舗だけを抽出
+      let openShops = shops.map(shop => {
+        let isOpen = checkIsOpen(shop, currentTime, currentDay);
+        const dist = getDistance(userLat, userLng, shop.lat, shop.lng);
+        return { ...shop, isOpen, dist };
+      }).filter(shop => shop.isOpen);
+
+      if(openShops.length === 0) {
+        resultDiv.innerHTML = "<p style='text-align:center; font-weight:bold; color:var(--primary); margin-top:20px;'>現在営業中の店舗が見つかりませんでした😭<br>時間を空けてお試しください。</p>";
+        return;
+      }
+
+      // ランダムで1店舗決定
+      const randomIndex = Math.floor(Math.random() * openShops.length);
+      const hitShop = openShops[randomIndex];
+
+      resultDiv.innerHTML = `
+        <h2 style="text-align:center; color:#FFA500; margin: 20px 0;">🎉 今日の運命の一杯はココ！</h2>
+        ${createCardHtml(hitShop, hitShop.dist)}
+      `;
+
+      resultDiv.innerHTML += `
+        <div class="ad-container">
+          <div class="ad-title">🍜 ガチャの結果がピンとこなかったら…</div>
+          <div class="ad-desc">いっそ家で全国の有名ラーメンを食べませんか？</div>
+          <a href="【ここにAmazonのアフィリエイトリンクを貼る】" target="_blank" class="ad-link-btn ad-amazon">Amazonでお取り寄せを見る</a>
+        </div>
+      `;
+      
+      resultDiv.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function playGacha() {
+      document.querySelectorAll('.quad-btn').forEach(btn => btn.classList.remove('selected'));
+      const resultDiv = document.getElementById("result");
+      resultDiv.innerHTML = "<p style='text-align:center; font-weight:bold; margin-top:20px;'>🎲 運命の1杯を抽選中...</p>";
+
+      navigator.geolocation.getCurrentPosition(
+        position => { runGacha(position.coords.latitude, position.coords.longitude); }, 
+        err => { runGacha(36.8272, 137.4042); },
+        { timeout: 4000 } 
+      );
+    }
+  </script>
+</body>
+</html>
