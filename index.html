@@ -486,9 +486,17 @@ function createCardHtml(shop, dist) {
           renderResults(quadrantId, position.coords.latitude, position.coords.longitude); 
         }, 
         err => { 
-          // 失敗時：駅選択UIを表示し、案内メッセージを出す
-          document.getElementById("fallback-ui").style.display = "block";
-          resultDiv.innerHTML = `<p style='text-align:center; color:#856404; font-weight:bold; margin-top:20px;'><span class="ja">上のメニューから基準とする駅を選択してください👆</span><span class="en">Please select a station above 👆</span></p>`;
+          // 失敗時：すでに駅が選択されているかチェックする
+          const selectedStation = document.getElementById("station-select").value;
+          if (selectedStation && stationCoords[selectedStation]) {
+            // すでに駅が選ばれていれば、その駅の座標を使って結果を表示！
+            const coords = stationCoords[selectedStation];
+            renderResults(quadrantId, coords.lat, coords.lng);
+          } else {
+            // まだ駅が選ばれていない場合のみ、案内メッセージを出す
+            document.getElementById("fallback-ui").style.display = "block";
+            resultDiv.innerHTML = `<p style='text-align:center; color:#856404; font-weight:bold; margin-top:20px;'><span class="ja">上のメニューから基準とする駅を選択してください👆</span><span class="en">Please select a station above 👆</span></p>`;
+          }
         }, 
         { timeout: 4000 } 
       );
@@ -516,16 +524,22 @@ function createCardHtml(shop, dist) {
     }
 
    function playGacha() {
-      isGachaMode = true; // ガチャモードON
+      isGachaMode = true;
       const resultDiv = document.getElementById("result");
       resultDiv.innerHTML = `<p style='text-align:center; font-weight:bold; margin-top:20px;'><span class="ja">運命の店舗を抽選中...🎲</span><span class="en">Rolling the dice...🎲</span></p>`;
       
       navigator.geolocation.getCurrentPosition(
         position => { runGacha(position.coords.latitude, position.coords.longitude); },
         err => {
-          // 失敗時：駅選択UIを表示する
-          document.getElementById("fallback-ui").style.display = "block";
-          resultDiv.innerHTML = `<p style='text-align:center; color:#856404; font-weight:bold; margin-top:20px;'><span class="ja">上のメニューから基準とする駅を選択してください👆</span><span class="en">Please select a station above 👆</span></p>`;
+          // 失敗時：すでに駅が選択されているかチェック
+          const selectedStation = document.getElementById("station-select").value;
+          if (selectedStation && stationCoords[selectedStation]) {
+            const coords = stationCoords[selectedStation];
+            runGacha(coords.lat, coords.lng);
+          } else {
+            document.getElementById("fallback-ui").style.display = "block";
+            resultDiv.innerHTML = `<p style='text-align:center; color:#856404; font-weight:bold; margin-top:20px;'><span class="ja">上のメニューから基準とする駅を選択してください👆</span><span class="en">Please select a station above 👆</span></p>`;
+          }
         },
         { timeout: 4000 }
       );
