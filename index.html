@@ -93,9 +93,28 @@
     <!-- シンプルなテキストのエリア表示に変更 -->
     <div class="area-container">
       <p class="area-text">
-        <span class="ja">📍現在の制覇エリア：魚津・黒部・滑川・入善・朝日<br><span class="area-sub">（順次拡大中！）</span></span>
+        <span class="ja">📍現在の対応エリア：富山市・滑川・魚津・黒部・入善・朝日<br><span class="area-sub">（順次拡大中！）</span></span>
         <span class="en">📍Current Area: Uozu, Kurobe, Namerikawa, Nyuzen, Asahi<br><span class="area-sub">(Expanding!)</span></span>
       </p>
+    </div>
+
+    <div id="fallback-ui" style="display: none; margin: 15px 20px; padding: 15px; background-color: #fff3cd; border: 1px solid #ffeeba; border-radius: 8px; text-align: center;">
+      <p style="margin: 0 0 10px 0; color: #856404; font-size: 14px; font-weight: bold;">
+        <span class="ja">現在地が取得できませんでした。<br>基準とする駅を選んでください。</span>
+        <span class="en">Location not found.<br>Please select a base station.</span>
+      </p>
+      <select id="station-select" onchange="handleStationSelect(this.value)" style="padding: 8px; font-size: 16px; width: 100%; max-width: 300px; border-radius: 4px; border: 1px solid #ccc; text-align: center;">
+        <option value="">駅を選択 / Select Station</option>
+        <option value="呉羽駅">呉羽駅 (Kureha)</option>
+        <option value="富山駅">富山駅 (Toyama)</option>
+        <option value="新富山口駅">新富山口駅 (Shin-Toyamaguchi)</option>
+        <option value="東富山駅">東富山駅 (Higashi-Toyama)</option>
+        <option value="水橋駅">水橋駅 (Mizuhashi)</option>
+        <option value="滑川駅">滑川駅 (Namerikawa)</option>
+        <option value="魚津駅">魚津駅 (Uozu)</option>
+        <option value="黒部駅">黒部駅 (Kurobe)</option>
+        <option value="入善駅">入善駅 (Nyuzen)</option>
+      </select>
     </div>
 
     <div class="matrix-title">
@@ -111,7 +130,7 @@
       </button>
       <button class="quad-btn q3" onclick="findRamen('q3', this)">
         <div class="quad-axis"><span class="ja">こってり × 進化系</span><span class="en">Rich × Modern</span></div>
-        <div class="quad-title"><span class="ja">本能むき出し</span><span class="en">Instinctive</span></div>
+        <div class="quad-title"><span class="ja">やみつきMAX</span><span class="en">Instinctive</span></div>
         <div class="quad-desc"><span class="ja">ジャンク＆濃厚</span><span class="en">Junk & Heavy</span></div>
       </button>
       <button class="quad-btn q2" onclick="findRamen('q2', this)">
@@ -172,6 +191,39 @@
 
     // 全44店舗データ（リアルな営業時間・定休日・中休みを適用済み）
     // closedDays: 0=日, 1=月, 2=火, 3=水, 4=木, 5=金, 6=土
+    // --- 基準となる駅の正確な座標データ ---
+    let currentQuadrantId = null; // どの気分ボタンが押されたかを記憶する変数
+    let isGachaMode = false;      // ガチャボタンが押されたかどうかを記憶する変数
+
+    const stationCoords = {
+      "呉羽駅": { lat: 36.7164, lng: 137.1517 },
+      "富山駅": { lat: 36.7015, lng: 137.2135 },
+      "新富山口駅": { lat: 36.7276, lng: 137.2345 },
+      "東富山駅": { lat: 36.7441, lng: 137.2472 },
+      "水橋駅": { lat: 36.7584, lng: 137.3022 },
+      "滑川駅": { lat: 36.7617, lng: 137.3404 },
+      "魚津駅": { lat: 36.8271, lng: 137.4087 },
+      "黒部駅": { lat: 36.8734, lng: 137.4361 },
+      "入善駅": { lat: 36.9366, lng: 137.4984 }
+    };
+
+    // --- 駅が選ばれたときに実行される処理 ---
+    function handleStationSelect(stationName) {
+      if (!stationName) return; // 未選択状態なら何もしない
+      
+      const coords = stationCoords[stationName];
+      
+      // 選んだ駅の座標を使って、記憶していた処理を再開する
+      if (isGachaMode) {
+        runGacha(coords.lat, coords.lng);
+      } else if (currentQuadrantId) {
+        renderResults(currentQuadrantId, coords.lat, coords.lng);
+      }
+    
+  
+    console.log(`${stationName}を基準にラーメン屋を検索します:`, coords);
+}
+    
     const shops = [
       // 黒部市
       { name: "食堂 味園", nameEn: "Shokudo Misono", city: "黒部市", cityEn: "Kurobe", lat: 36.896336, lng: 137.428373, quad: "q2", open: 1100, close: 2000, closedDays: [1], desc: "地元で愛される食堂。定食もラーメンも人気。", descEn: "Beloved local diner. Set meals and ramen." },
@@ -217,8 +269,7 @@
       { name: "あらき", nameEn: "Araki", city: "滑川市", cityEn: "Namerikawa", lat: 36.759868, lng: 137.346109, quad: "q2", open: 1100, close: 2000, closedDays: [3], desc: "地元民に長く親しまれる安心の名店。", descEn: "Long-standing famous shop cherished by locals." },
       { name: "中華そば 牡丹", nameEn: "Botan", city: "滑川市", cityEn: "Namerikawa", lat: 36.756847, lng: 137.349161, quad: "q4", open: 1100, close: 1500, closedDays: [4], desc: "シンプルで奥深いクリアスープが絶品。", descEn: "Exquisite, simple yet profound clear soup." },
       { name: "新潟雪国ラーメン なおじ 滑川店", nameEn: "Naoji Namerikawa", city: "滑川市", cityEn: "Namerikawa", lat: 36.755006, lng: 137.347420, quad: "q3", open: 1100, close: 2200, breakStart: 1500, breakEnd: 1730, closedDays: [2], desc: "背脂の暴力。ガッツリ食べたい時に最適。", descEn: "Violence of back fat. Perfect for huge appetites." },
-      { name: "フードステーションプラント3 滑川店", nameEn: "Plant-3 Namerikawa", city: "滑川市", cityEn: "Namerikawa", lat: 36.750617, lng: 137.352391, quad: "q1", open: 1100, close: 2000, closedDays: [], desc: "PLANT-3内で定番の富山ブラックを堪能。", descEn: "Enjoy standard Toyama Black inside the supermarket." },
-      
+     
       // 入善町
       { name: "めん六や 入善店", nameEn: "Menrokuya Nyuzen", city: "入善町", cityEn: "Nyuzen", lat: 36.908215, lng: 137.471969, quad: "q2", open: 1130, close: 1800, closedDays: [], desc: "気軽に立ち寄れるホッとする食堂ラーメン。", descEn: "Casual and comforting diner ramen." },
       { name: "黄鶴楼", nameEn: "Kokakurou", city: "入善町", cityEn: "Nyuzen", lat: 36.919973, lng: 137.479579, quad: "q2", open: 1100, close: 2100, breakStart: 1400, breakEnd: 1700, closedDays: [3], desc: "本格中華料理店が提供する確かな一杯。", descEn: "Authentic Chinese restaurant noodles." },
@@ -233,7 +284,82 @@
       
       // 朝日町
       { name: "元気らーめん", nameEn: "Genki Ramen", city: "朝日町", cityEn: "Asahi", lat: 36.948589, lng: 137.553442, quad: "q1", open: 1100, close: 2130, breakStart: 1430, breakEnd: 1700, closedDays: [4], desc: "スタミナ満点！ガッツリ食べて元気が出る一杯。", descEn: "Stamina-packed hearty ramen to boost your energy." },
-      { name: "結", nameEn: "Yui", city: "朝日町", cityEn: "Asahi", lat: 36.974814, lng: 137.598322, quad: "q4", open: 1100, close: 1430, closedDays: [3], desc: "こだわりのスープが美しい新感覚ラーメン。", descEn: "Modern ramen with a beautifully crafted soup." }
+      { name: "結", nameEn: "Yui", city: "朝日町", cityEn: "Asahi", lat: 36.974814, lng: 137.598322, quad: "q4", open: 1100, close: 1430, closedDays: [3], desc: "こだわりのスープが美しい新感覚ラーメン。", descEn: "Modern ramen with a beautifully crafted soup." },
+
+      // 富山市
+      { name: "西町大喜 西町本店", nameEn: "Nishicho Taiki", city: "富山市", cityEn: "Toyama", lat: 36.6874, lng: 137.2144, quad: "q1", open: 1100, close: 2000, closedDays: [3], desc: "富山ブラック発祥の店。塩気の強い圧倒的パンチ力。", descEn: "The pioneer of Toyama Black. Extreme salty punch." },
+      { name: "麺家 いろは CiC店", nameEn: "Menya Iroha", city: "富山市", cityEn: "Toyama", lat: 36.6999, lng: 137.2132, quad: "q1", open: 1100, close: 2200, closedDays: [], desc: "全国的に有名な食べやすいマイルド系富山ブラック。", descEn: "Famous and mild Toyama Black. Open late." },
+      { name: "ラーメン一心 富山駅前本店", nameEn: "Ramen Isshin", city: "富山市", cityEn: "Toyama", lat: 36.7025, lng: 137.2115, quad: "q4", open: 1130, close: 2130, closedDays: [0], desc: "無化調の煮干し醤油。連日行列が絶えない超人気店。", descEn: "No-MSG Niboshi soy sauce. Always has a line." },
+      { name: "麺屋 つくし 富山本店", nameEn: "Menya Tsukushi", city: "富山市", cityEn: "Toyama", lat: 36.6667, lng: 137.1995, quad: "q3", open: 1100, close: 2100, breakStart: 1445, breakEnd: 1700, closedDays: [3], desc: "札幌の名店「すみれ」出身。濃厚味噌ラーメンの最高峰。", descEn: "Sapporo style rich Miso ramen. Absolutely delicious." },
+      { name: "中華そば つぼみ", nameEn: "Chukasoba Tsubomi", city: "富山市", cityEn: "Toyama", lat: 36.7113, lng: 137.2514, quad: "q4", open: 1130, close: 1430, closedDays: [2], desc: "美しいクリアな出汁と濃厚鶏白湯が楽しめる名店。", descEn: "Beautiful clear broth and rich chicken Paitan." },
+      { name: "麺屋 豚道場", nameEn: "Buta Dojo", city: "富山市", cityEn: "Toyama", lat: 36.6934, lng: 137.1895, quad: "q3", open: 1100, close: 2145, breakStart: 1400, breakEnd: 1800, closedDays: [], desc: "富山大学近くの二郎系インスパイア。ジャンクの極み。", descEn: "Jiro-style near Toyama Univ. Pure junk food." },
+      { name: "柳の下 末弘軒 本店", nameEn: "Suehiroken", city: "富山市", cityEn: "Toyama", lat: 36.6853, lng: 137.2142, quad: "q2", open: 1100, close: 1945, breakStart: 1445, breakEnd: 1700, closedDays: [2, 3], desc: "昭和6年創業。手打ち麺とワンタンメンが有名。", descEn: "Established 1931. Famous for handmade noodles and wonton." },
+      { name: "つけめん えびすこ", nameEn: "Ebisuko", city: "富山市", cityEn: "Toyama", lat: 36.6710, lng: 137.2172, quad: "q3", open: 1100, close: 2030, breakStart: 1430, breakEnd: 1730, closedDays: [4], desc: "富山ブラックテイストのつけ麺や濃厚豚骨魚介が人気。", descEn: "Popular Toyama Black style tsukemen and rich pork-seafood." },
+      { name: "大喜 根塚店", nameEn: "Taiki Nezuka", city: "富山市", cityEn: "Toyama", lat: 36.6775, lng: 137.2023, quad: "q1", open: 1100, close: 1630, closedDays: [3], desc: "本店より少しマイルドで地元民に愛されるもう一つの大喜。", descEn: "Milder than the main shop, highly loved by locals." },
+      { name: "支那そばや 翠月", nameEn: "Suigetsu", city: "富山市", cityEn: "Toyama", lat: 36.7095, lng: 137.1264, quad: "q4", open: 1115, close: 1930, breakStart: 1430, breakEnd: 1730, closedDays: [4], desc: "ラーメンの鬼・佐野実氏の系譜。究極の醤油スープ。", descEn: "Lineage of the Ramen Demon. Ultimate soy sauce soup." },
+      { name: "DOG HOUSE", nameEn: "Dog House", city: "富山市", cityEn: "Toyama", lat: 36.6661, lng: 137.2345, quad: "q3", open: 1100, close: 2100, breakStart: 1430, breakEnd: 1830, closedDays: [3], desc: "濃厚な鶏豚骨スープ。コアならーめんマニアが集う。", descEn: "Rich chicken-pork bone soup. Loved by maniacs." },
+      { name: "まるたかや 富山駅前店", nameEn: "Marutakaya Toyama Ekimae", city: "富山市", cityEn: "Toyama", lat: 36.7011, lng: 137.2114, quad: "q1", open: 1130, close: 2500, closedDays: [1], desc: "背脂揚玉とニンニクで仕上げる富山のソウルフード。", descEn: "Toyama's soul food topped with fried back fat." },
+      { name: "エアーストリーム", nameEn: "Airstream", city: "富山市", cityEn: "Toyama", lat: 36.6789, lng: 137.2241, quad: "q3", open: 1100, close: 2100, breakStart: 1500, breakEnd: 1730, closedDays: [1], desc: "トマトラーメンなど個性的で完成度が高い無化調自家製麺。", descEn: "Unique and high-quality MSG-free ramen." },
+      { name: "南京千両 本店", nameEn: "Nankin Senryo", city: "富山市", cityEn: "Toyama", lat: 36.6905, lng: 137.2285, quad: "q2", open: 1100, close: 1500, closedDays: [4, 5], desc: "屋台から始まった老舗。現在は昼のみ営業のホッとする中華そば。", descEn: "Historic diner. Now open only for lunch, serving comforting ramen." },
+      { name: "麺屋 達 掛尾店", nameEn: "Menya Tatsu Kakeo", city: "富山市", cityEn: "Toyama", lat: 36.6701, lng: 137.2148, quad: "q3", open: 1100, close: 2200, closedDays: [], desc: "金沢発祥の本格家系ラーメン。無休で通し営業。", descEn: "Authentic Iekei ramen from Kanazawa. Open all day." },
+      { name: "喜八", nameEn: "Kihachi", city: "富山市", cityEn: "Toyama", lat: 36.7118, lng: 137.2185, quad: "q1", open: 1100, close: 2050, breakStart: 1445, breakEnd: 1730, closedDays: [1], desc: "塩気が絶妙な食べやすい富山ブラックの人気店。", descEn: "Popular for its well-balanced Toyama Black." },
+      { name: "めん家", nameEn: "Menya", city: "富山市", cityEn: "Toyama", lat: 36.6795, lng: 137.2050, quad: "q1", open: 1100, close: 2130, breakStart: 1500, breakEnd: 1700, closedDays: [4], desc: "しょっぱさの奥に旨味がある富山ブラック。大判チャーシューが絶品。", descEn: "Rich umami behind the saltiness. Great chashu." },
+      { name: "古久龍 本店", nameEn: "Kokuryu", city: "富山市", cityEn: "Toyama", lat: 36.6875, lng: 137.2332, quad: "q2", open: 1100, close: 2200, breakStart: 1500, breakEnd: 1730, closedDays: [2], desc: "不二越駅前。昔から愛されるシンプルで味わい深い中華そば。", descEn: "Classic, long-loved soy sauce ramen near Fujikoshi station." },
+      { name: "麺屋 一鶴", nameEn: "Menya Ikkaku", city: "富山市", cityEn: "Toyama", lat: 36.7155, lng: 137.2180, quad: "q4", open: 1130, close: 1350, closedDays: [2, 3], desc: "ミシュラン掲載店。煮干しの旨味がダイレクトに伝わる一杯。", descEn: "Michelin-listed. Intense and delicious Niboshi (dried sardine) soup." },
+      { name: "樹亭 婦中店", nameEn: "Jutei Fuchu", city: "富山市", cityEn: "Toyama", lat: 36.6500, lng: 137.1550, quad: "q1", open: 1130, close: 2130, breakStart: 1400, breakEnd: 1700, closedDays: [2, 3], desc: "脂感とコクのある濃口醤油ラーメン。ホロホロのチャーシューが絶品。", descEn: "Rich dark soy sauce ramen with incredibly tender chashu." },
+      { name: "麺屋 丸超 富山インター店", nameEn: "Menya Marucho", city: "富山市", cityEn: "Toyama", lat: 36.6505, lng: 137.2075, quad: "q1", open: 1100, close: 2300, breakStart: 1500, breakEnd: 1800, closedDays: [], desc: "国産大豆の味噌と特製肉そばが名物。ガッツリ食べたい時に。", descEn: "Famous for rich miso and meat soba. Great for big appetites." },
+      { name: "くるまやラーメン 山室店", nameEn: "Kurumaya Ramen Yamamuro", city: "富山市", cityEn: "Toyama", lat: 36.6775, lng: 137.2280, quad: "q3", open: 1100, close: 2130, closedDays: [], desc: "ニンニクが効いた濃厚味噌ラーメンの定番チェーン。", descEn: "Standard chain famous for its garlic-rich miso ramen." },
+      { name: "麺バル プライド", nameEn: "Menbar Pride", city: "富山市", cityEn: "Toyama", lat: 36.7011, lng: 137.2132, quad: "q4", open: 1100, close: 2200, breakStart: 1430, breakEnd: 1700, closedDays: [1], desc: "富山駅前パティオさくら2F。元格闘家が手掛ける洗練されたラーメンバル。", descEn: "Refined ramen bar in front of Toyama Station." },
+      { name: "喜多方ラーメン蔵 新庄店", nameEn: "Kitakata Ramen Kura Shinjo", city: "富山市", cityEn: "Toyama", lat: 36.7027, lng: 137.2415, quad: "q1", open: 1100, close: 2400, closedDays: [], desc: "背脂が乗ったコクのある醤油ラーメン。メニューが豊富な人気チェーン。", descEn: "Popular chain famous for rich soy sauce ramen with back fat." },
+      { name: "むてっぽう 太郎丸店", nameEn: "Muteppou Taromaru", city: "富山市", cityEn: "Toyama", lat: 36.6775, lng: 137.2120, quad: "q1", open: 1100, close: 2300, breakStart: 1500, breakEnd: 1730, closedDays: [], desc: "香ばしい麦味噌ラーメンがクセになる名店。", descEn: "Addictive roasted barley miso ramen." },
+      { name: "無添加ラーメンの万里", nameEn: "Banri", city: "富山市", cityEn: "Toyama", lat: 36.7118, lng: 137.2415, quad: "q2", open: 1130, close: 2300, breakStart: 1500, breakEnd: 1730, closedDays: [2], desc: "手打ちのちぢれ麺。無添加にこだわる富山ブラック系中華そば。", descEn: "MSG-free Toyama Black style ramen with handmade curly noodles." },
+      { name: "中華蕎麦 はし本", nameEn: "Hashimoto", city: "富山市", cityEn: "Toyama", lat: 36.6795, lng: 137.2450, quad: "q4", open: 1100, close: 2200, breakStart: 1500, breakEnd: 1800, closedDays: [3], desc: "豚骨魚介のWスープが無化調で味わえる常に行列の名店。", descEn: "MSG-free double soup of pork and seafood. Always has a line." },
+      { name: "8番らーめん 太郎丸店", nameEn: "Hachiban Ramen Taromaru", city: "富山市", cityEn: "Toyama", lat: 36.6770, lng: 137.2100, quad: "q2", open: 1000, close: 2200, closedDays: [], desc: "富山県民のソウルフード。野菜らーめんが定番。", descEn: "Soul food of Toyama. Veggie ramen is a must." },
+      { name: "8番らーめん 富山駅前店", nameEn: "Hachiban Ramen Ekimae", city: "富山市", cityEn: "Toyama", lat: 36.7015, lng: 137.2135, quad: "q2", open: 1000, close: 2200, closedDays: [], desc: "駅前でサクッと食べられる北陸の安心の味。", descEn: "Reliable Hokuriku flavor right near the station." },
+      { name: "来来亭 富山掛尾店", nameEn: "Rairaitei Kakeo", city: "富山市", cityEn: "Toyama", lat: 36.6585, lng: 137.2050, quad: "q1", open: 1100, close: 2400, closedDays: [], desc: "背脂醤油にネギたっぷり。カスタマイズが楽しい人気チェーン。", descEn: "Soy sauce with back fat and plenty of green onions." },
+      { name: "天下一品 富山掛尾店", nameEn: "Tenkaippin Kakeo", city: "富山市", cityEn: "Toyama", lat: 36.6570, lng: 137.2045, quad: "q3", open: 1100, close: 2400, closedDays: [], desc: "唯一無二の「こってり」スープ。熱狂的ファン多数。", descEn: "Unique ultra-rich soup with enthusiastic fans." },
+      { name: "ラーメン山岡家 富山店", nameEn: "Yamaokaya Toyama", city: "富山市", cityEn: "Toyama", lat: 36.6530, lng: 137.2085, quad: "q3", open: 0, close: 2400, closedDays: [], desc: "24時間営業！ガツンと来る豚骨臭がたまらないロードサイド店。", descEn: "Open 24/7! Strong pork bone aroma." },
+      { name: "麵家 しらかわ", nameEn: "Shirakawa", city: "富山市", cityEn: "Toyama", lat: 36.7015, lng: 137.2125, quad: "q4", open: 1100, close: 1500, closedDays: [1], desc: "飛騨高山の名店が進出。縮れ麺とあっさり醤油の極上スープ。", descEn: "Famous Takayama shop. Curly noodles and light soy sauce." },
+      { name: "めん吉", nameEn: "Menkichi", city: "富山市", cityEn: "Toyama", lat: 36.6885, lng: 137.2355, quad: "q1", open: 1100, close: 1900, closedDays: [2], desc: "富山ブラックの中でも醤油のキレが際立つ地域密着の隠れた名店。", descEn: "Toyama Black with a sharp soy sauce edge." },
+      { name: "らーめん くり坊", nameEn: "Kuribou", city: "富山市", cityEn: "Toyama", lat: 36.6805, lng: 137.2150, quad: "q2", open: 1100, close: 1430, closedDays: [0, 3], desc: "お昼のみ営業の隠れた名店。素材の旨味が光る優しい味わい。", descEn: "Lunch-only hidden gem with a gentle flavor." },
+      { name: "吉兆佐", nameEn: "Kicchoza", city: "富山市", cityEn: "Toyama", lat: 36.6530, lng: 137.1620, quad: "q2", open: 1100, close: 2000, breakStart: 1430, breakEnd: 1700, closedDays: [1], desc: "婦中エリアの名店。絶品の塩ラーメンと香ばしいチャーハンが人気。", descEn: "Famous in Fuchu area. Excellent salt ramen and fried rice." },
+      { name: "中華そば めん八 呉羽店", nameEn: "Menpachi Kureha", city: "富山市", cityEn: "Toyama", lat: 36.7095, lng: 137.1580, quad: "q1", open: 1100, close: 2100, breakStart: 1400, breakEnd: 1700, closedDays: [1], desc: "ホロホロのチャーシューが乗った、呉羽で愛される富山ブラック。", descEn: "Locally loved Toyama Black with super tender chashu." },
+      { name: "らーめん世界 富山呉羽店", nameEn: "Ramen Sekai Kureha", city: "富山市", cityEn: "Toyama", lat: 36.7080, lng: 137.1650, quad: "q1", open: 1100, close: 2400, closedDays: [], desc: "絶品やきめしと豚骨醤油。ファミリー層にも大人気のチェーン。", descEn: "Great fried rice and pork-soy ramen. Very family-friendly." },
+      { name: "バグジー", nameEn: "Bugsy", city: "富山市", cityEn: "Toyama", lat: 36.6880, lng: 137.1950, quad: "q4", open: 1100, close: 1430, closedDays: [1, 2], desc: "オシャレな店内でいただく、鶏の旨味が詰まった繊細な塩。", descEn: "Delicate salt ramen packed with chicken umami in a stylish shop." },
+      { name: "らーめん 時代屋", nameEn: "Jidaiya", city: "富山市", cityEn: "Toyama", lat: 36.6715, lng: 137.2348, quad: "q2", open: 1100, close: 2200, closedDays: [4], desc: "昔ながらの屋台風ラーメン。あっさりとして胃に優しい。", descEn: "Old-school food stall style ramen. Light and gentle." },
+      { name: "ぽんた", nameEn: "Ponta", city: "富山市", cityEn: "Toyama", lat: 36.6961, lng: 137.2140, quad: "q2", open: 1900, close: 2600, closedDays: [0], desc: "富山最大の歓楽街・桜木町で飲んだ後の定番あっさりラーメン。", descEn: "Standard light ramen after drinking in Sakuragicho district." },
+      { name: "無尽蔵 ファボーレ富山店", nameEn: "Mujinzo Favore", city: "富山市", cityEn: "Toyama", lat: 36.6575, lng: 137.1655, quad: "q2", open: 1100, close: 2200, closedDays: [], desc: "ファボーレ内で買い物ついでに。柿ポリフェノール入りのツルツル麺。", descEn: "Smooth noodles inside Favore shopping mall." },
+      { name: "麺屋 豚道場 ぶた壱", nameEn: "Buta Dojo Buta Ichi", city: "富山市", cityEn: "Toyama", lat: 36.6968, lng: 137.2530, quad: "q3", open: 1100, close: 2100, breakStart: 1500, breakEnd: 1800, closedDays: [3], desc: "新庄にある極厚豚と極太麺の超人気二郎系。", descEn: "Massive portions of Jiro-style ramen with super thick noodles." },
+      { name: "ちゃるめら ぐっぴー", nameEn: "Charumera Guppy", city: "富山市", cityEn: "Toyama", lat: 36.7088, lng: 137.2485, quad: "q4", open: 1100, close: 1500, closedDays: [4], desc: "熱狂的ファンが多い隠れ家。スパイスが効いた唯一無二の味。", descEn: "Hidden gem with enthusiastic fans. Unique spicy ramen." },
+      { name: "麺屋 寅ノ介", nameEn: "Menya Toranosuke", city: "富山市", cityEn: "Toyama", lat: 36.6965, lng: 137.2155, quad: "q3", open: 1130, close: 2700, breakStart: 1430, breakEnd: 2100, closedDays: [4], desc: "歓楽街近くの実力派。深夜の〆まで楽しめる濃口醤油が人気。", descEn: "Deep soy sauce ramen popular from lunch to late night." },
+      { name: "麺や美豚", nameEn: "Biton", city: "富山市", cityEn: "Toyama", lat: 36.6674, lng: 137.2235, quad: "q3", open: 1100, close: 2200, breakStart: 1430, breakEnd: 1730, closedDays: [4], desc: "地産のみそと豚肉を使用。優しい味わいの糀みそ豚骨。", descEn: "Kouji Miso Tonkotsu ramen using local ingredients." },
+      { name: "ラーメンまこと屋 富山豊田店", nameEn: "Makotoya Toyama Toyota", city: "富山市", cityEn: "Toyama", lat: 36.7260, lng: 137.2280, quad: "q1", open: 1100, close: 2400, closedDays: [], desc: "2026年秋オープンの新店。富山初出店の牛骨ラーメン！", descEn: "Opened in late 2026. First Gyukotsu (beef bone) ramen in Toyama!" },
+      { name: "世界を照らせ らぁ麺あり澤 大泉店", nameEn: "Ramen Arisawa", city: "富山市", cityEn: "Toyama", lat: 36.6770, lng: 137.2210, quad: "q4", open: 600, close: 2100, breakStart: 1430, breakEnd: 1730, closedDays: [4], desc: "朝6時から営業。自家製麺と魚介・鶏豚ガラのWスープ。", descEn: "Open from 6 AM. Homemade noodles and balanced double soup." },
+      { name: "自家製麺 ふきの葉", nameEn: "Fukinoha", city: "富山市", cityEn: "Toyama", lat: 36.6900, lng: 137.2150, quad: "q4", open: 1100, close: 2100, breakStart: 1500, breakEnd: 1700, closedDays: [], desc: "総曲輪の澄んだ醤油スープ。上品でコシのある自家製麺。", descEn: "Clear soy sauce soup in Sogawa. Elegant homemade noodles." },
+      { name: "THE SUN COMEN", nameEn: "The Sun Comen", city: "富山市", cityEn: "Toyama", lat: 36.6853, lng: 137.2185, quad: "q3", open: 1100, close: 2100, breakStart: 1400, breakEnd: 1800, closedDays: [], desc: "圧倒的ボリュームのG系ラーメン。（旧：夢を語れ富山）", descEn: "Massive volume G-style ramen. (Formerly Yume wo Katare)." },
+      { name: "駅前ラーメン ひげ", nameEn: "Ekimae Ramen Hige", city: "富山市", cityEn: "Toyama", lat: 36.7001, lng: 137.2104, quad: "q2", open: 1130, close: 2500, breakStart: 1330, breakEnd: 1800, closedDays: [0], desc: "深夜まで営業。飲んだ後の〆に最高なスッキリ豚骨魚介。", descEn: "Open until late night. Perfect refreshing ramen after drinks." },
+      { name: "らーめん 出汁と麺", nameEn: "Dashi to Men", city: "富山市", cityEn: "Toyama", lat: 36.6720, lng: 137.2290, quad: "q4", open: 1000, close: 1730, closedDays: [3], desc: "カフェのようなお洒落な空間で味わう新感覚ラーメン。", descEn: "Modern ramen enjoyed in a stylish, cafe-like space." },
+      { name: "ダルマヤラーメン 富山北代店", nameEn: "Darumaya Kitadai", city: "富山市", cityEn: "Toyama", lat: 36.7020, lng: 137.1610, quad: "q1", open: 1100, close: 2100, closedDays: [1], desc: "自家製手揉み麺。50年愛される「元祖」と「ヤング」。", descEn: "Hand-massaged noodles. Loved for 50 years." },
+      { name: "まるたかや 富山牛島本店", nameEn: "Marutakaya Ushijima", city: "富山市", cityEn: "Toyama", lat: 36.7070, lng: 137.2130, quad: "q1", open: 1100, close: 2130, closedDays: [1, 2], desc: "富山駅北口。おでんと一緒に楽しむ富山のソウルフード。", descEn: "Enjoy Toyama's soul food with Oden near the North Gate." },
+      { name: "西町大喜 とやマルシェ店", nameEn: "Taiki Toya Marche", city: "富山市", cityEn: "Toyama", lat: 36.7010, lng: 137.2130, quad: "q1", open: 1000, close: 2100, closedDays: [], desc: "富山駅構内でサクッと本家富山ブラックのパンチ力を体験。", descEn: "Experience the original Toyama Black punch inside the station." },
+      { name: "丸源ラーメン 富山掛尾店", nameEn: "Marugen Ramen Kakeo", city: "富山市", cityEn: "Toyama", lat: 36.6575, lng: 137.2045, quad: "q1", open: 1030, close: 2400, closedDays: [], desc: "掛尾交差点近く。熟成醤油の「肉そば」が看板メニューの大型チェーン。", descEn: "Famous for aged soy sauce 'Niku Soba'. Spacious restaurant." },
+      { name: "富公", nameEn: "Tomikou", city: "富山市", cityEn: "Toyama", lat: 36.6853, lng: 137.2285, quad: "q2", open: 1100, close: 1400, closedDays: [2, 3], desc: "西公文名にある昼のみ営業の人気店。歯ごたえ抜群のチャーシューと濃口醤油が美味。", descEn: "Lunch only. Famous for delicious chewy chashu and dark soy sauce broth." },
+      { name: "中華蕎麦 はねるや", nameEn: "Haneruya", city: "富山市", cityEn: "Toyama", lat: 36.6900, lng: 137.2130, quad: "q4", open: 1100, close: 1500, closedDays: [2], desc: "総曲輪エリアでこだわりの一杯を提供する人気店。", descEn: "Popular shop offering carefully crafted bowls in Sogawa." },
+      { name: "麺家 なると 掛尾店", nameEn: "Menya Naruto Kakeo", city: "富山市", cityEn: "Toyama", lat: 36.6665, lng: 137.2054, quad: "q3", open: 1100, close: 2400, closedDays: [], desc: "掛尾にあるガッツリ二郎系インスパイア。深夜まで営業。", descEn: "Jiro-style hearty ramen for big appetites in Kakeo." },
+      { name: "RAMEN Spartan Z", nameEn: "Ramen Spartan Z", city: "富山市", cityEn: "Toyama", lat: 36.6980, lng: 137.1900, quad: "q4", open: 1130, close: 1400, closedDays: [1], desc: "五福に2024年オープン。和食出身店主の濃密豚清湯が絶品。", descEn: "Opened in 2024. Clear yet rich pork soup by a former Japanese chef." },
+      { name: "横濱家系ラーメン 元喜家 富山店", nameEn: "Genkiya Toyama", city: "富山市", cityEn: "Toyama", lat: 36.7025, lng: 137.2060, quad: "q3", open: 1100, close: 2100, closedDays: [], desc: "四ツ葉町の王道家系ラーメン。豚骨と鶏油のバランスが最高。", descEn: "Classic Yokohama Iekei ramen. Great balance of pork bone and chicken oil." },
+      { name: "王道乃印 富山家", nameEn: "Toyamaya", city: "富山市", cityEn: "Toyama", lat: 36.7150, lng: 137.2450, quad: "q3", open: 1100, close: 2100, closedDays: [1], desc: "2026年5月新屋にオープン。名門「王道家」の味が富山初上陸。", descEn: "Opened in May 2026. Famous 'Odo-ya' lineage Iekei ramen." },
+      { name: "豚豚炉", nameEn: "Totoro", city: "富山市", cityEn: "Toyama", lat: 36.7027, lng: 137.2285, quad: "q1", open: 1100, close: 2030, breakStart: 1500, breakEnd: 1730, closedDays: [3], desc: "稲荷元町の人気店。ランチタイムは常に混雑する確かな味。", descEn: "Highly rated in Inarimotomachi. Always crowded for lunch." },
+      { name: "8番らーめん 呉羽本郷店", nameEn: "Hachiban Ramen Kurehahongo", city: "富山市", cityEn: "Toyama", lat: 36.7065, lng: 137.1610, quad: "q2", open: 1100, close: 2200, closedDays: [], desc: "呉羽エリアの定番。安心と信頼の野菜らーめん。", descEn: "Standard in Kureha area. Reliable and healthy vegetable ramen." },
+      { name: "つけ麺 是・空 富山今泉店", nameEn: "Tsukemen Ze-Kuu Imaizumi", city: "富山市", cityEn: "Toyama", lat: 36.6713, lng: 137.2144, quad: "q3", open: 1100, close: 2230, breakStart: 1500, breakEnd: 1730, closedDays: [], desc: "福井発祥の人気店。濃厚な「どろつけ麺」が絶品。", descEn: "Rich dipping noodles. Famous for its heavy 'Doro Tsukemen'." },
+      { name: "らぁめん 麺王", nameEn: "Menou", city: "富山市", cityEn: "Toyama", lat: 36.6908, lng: 137.2346, quad: "q3", open: 1130, close: 2330, breakStart: 1430, breakEnd: 1730, closedDays: [2], desc: "石金交差点近く。家系豚骨醤油ラーメンで常連に愛される名店。", descEn: "Iekei pork-soy ramen near Ishigane. Loved by locals." },
+      { name: "塩苅食堂", nameEn: "Shiokari Shokudo", city: "富山市", cityEn: "Toyama", lat: 36.6811, lng: 137.2144, quad: "q2", open: 1100, close: 1500, closedDays: [0], desc: "梅沢町にある超老舗の大衆食堂。優しくて懐かしい中華そば。", descEn: "Historic diner in Umezawa-cho. Gentle and nostalgic ramen." },
+      { name: "辛麺屋 鯱輪 富山呉羽店", nameEn: "Shachiwa Kureha", city: "富山市", cityEn: "Toyama", lat: 36.7115, lng: 137.1550, quad: "q3", open: 1100, close: 2130, breakStart: 1500, breakEnd: 1700, closedDays: [1], desc: "まぜそば「はなび」跡地に誕生した旨辛にんにくラーメン！", descEn: "Spicy garlic ramen! New shop in the Kureha area." },
+      { name: "麺酒場Nowl.", nameEn: "Nowl", city: "富山市", cityEn: "Toyama", lat: 36.7015, lng: 137.2125, quad: "q4", open: 1800, close: 2700, closedDays: [0], desc: "富山駅前のバー。〆に提供されるクリーミーな魚介鶏白湯ラーメンが話題。", descEn: "Bar near Toyama St. Their closing chicken Paitan ramen is excellent." },
+      { name: "なんばんラーメン", nameEn: "Nanban Ramen", city: "富山市", cityEn: "Toyama", lat: 36.6450, lng: 137.1550, quad: "q2", open: 1100, close: 2000, closedDays: [1], desc: "婦中町で愛される昔ながらの味。チャーハンとの相性抜群。", descEn: "Old-school flavor loved in Fuchumachi. Great with fried rice." },
+      { name: "麺屋 丸超 富山下赤江店", nameEn: "Menya Marucho Shimoakae", city: "富山市", cityEn: "Toyama", lat: 36.7200, lng: 137.2250, quad: "q1", open: 1100, close: 2130, closedDays: [], desc: "下赤江にある店舗。お手頃価格でボリュームのある特製肉そば。", descEn: "Located in Shimoakae. Affordable and voluminous meat soba." },
+      { name: "スタミナえびすこ食堂", nameEn: "Stamina Ebisuko Shokudo", city: "富山市", cityEn: "Toyama", lat: 36.6990, lng: 137.1890, quad: "q3", open: 1100, close: 2100, closedDays: [], desc: "五福アリスショッピングセンター内。パンチの効いたスタミナ系。", descEn: "Inside Alice Shopping Center. Punchy stamina ramen." },
+      { name: "中華そば 虎矢", nameEn: "Toya", city: "富山市", cityEn: "Toyama", lat: 36.6780, lng: 137.2023, quad: "q2", open: 1100, close: 2900, breakStart: 1400, breakEnd: 1900, closedDays: [], desc: "新根塚のあっさり中華そば。深夜・早朝まで営業しているオアシス。", descEn: "Light soy sauce ramen in Shin-Nezuka. Open until early morning." }
     ];
 
     function getDistance(lat1, lng1, lat2, lng2) {
@@ -279,8 +405,10 @@
         </div>
       `;
     }
-    function createCardHtml(shop, dist) {
-      const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${shop.lat},${shop.lng}`;
+function createCardHtml(shop, dist) {
+      // 座標ではなく「富山県 市町村名 店舗名」で検索させて正確なピンを指すように変更
+      const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent('富山県' + shop.city + ' ' + shop.name)}`;
+      
       return `
         <div class="shop-card">
           <div class="shop-header">
@@ -290,7 +418,7 @@
               : `<span class="status is-closed"><span class="ja">準備中/定休</span><span class="en">Closed</span></span>`}
           </div>
           
-          <!-- ★ここを追加：店名の下に営業時間を表示 -->
+          <!-- 営業時間・定休日 -->
           ${getHoursHtml(shop)}
           
           <div class="shop-city">📍 <span class="ja">${shop.city}</span><span class="en">${shop.cityEn}</span></div>
@@ -331,6 +459,8 @@
       });
       filteredShops.sort((a, b) => { if (a.isOpen === b.isOpen) return a.dist - b.dist; return a.isOpen ? -1 : 1; });
 
+      filteredShops = filteredShops.slice(0, 10);
+
       resultDiv.innerHTML = "";
       if (filteredShops.length === 0) {
         resultDiv.innerHTML = `<p style='text-align:center; font-weight:bold; margin-top:20px;'><span class="ja">該当店舗なし</span><span class="en">No shops found</span></p>`;
@@ -342,13 +472,25 @@
     }
 
     function findRamen(quadrantId, btnElement) {
+      currentQuadrantId = quadrantId; // 押されたボタンを記憶
+      isGachaMode = false;            // ガチャモードではない
+      
       document.querySelectorAll('.quad-btn').forEach(btn => btn.classList.remove('selected'));
       btnElement.classList.add('selected');
       const resultDiv = document.getElementById("result");
       resultDiv.innerHTML = `<p style='text-align:center; font-weight:bold; margin-top:20px;'><span class="ja">店舗を探しています...</span><span class="en">Searching for shops...</span></p>`;
+      
       navigator.geolocation.getCurrentPosition(
-        position => { renderResults(quadrantId, position.coords.latitude, position.coords.longitude); }, 
-        err => { renderResults(quadrantId, 36.8272, 137.4042); }, { timeout: 4000 } 
+        position => { 
+          // 成功時：実際のGPS座標を使って計算
+          renderResults(quadrantId, position.coords.latitude, position.coords.longitude); 
+        }, 
+        err => { 
+          // 失敗時：駅選択UIを表示し、案内メッセージを出す
+          document.getElementById("fallback-ui").style.display = "block";
+          resultDiv.innerHTML = `<p style='text-align:center; color:#856404; font-weight:bold; margin-top:20px;'><span class="ja">上のメニューから基準とする駅を選択してください👆</span><span class="en">Please select a station above 👆</span></p>`;
+        }, 
+        { timeout: 4000 } 
       );
     }
 
@@ -373,12 +515,19 @@
       resultDiv.scrollIntoView({ behavior: "smooth", block: "start" });
     }
 
-    function playGacha() {
-      document.querySelectorAll('.quad-btn').forEach(btn => btn.classList.remove('selected'));
-      document.getElementById("result").innerHTML = `<p style='text-align:center; font-weight:bold; margin-top:20px;'><span class="ja">🎲 抽選中...</span><span class="en">🎲 Spinning...</span></p>`;
+   function playGacha() {
+      isGachaMode = true; // ガチャモードON
+      const resultDiv = document.getElementById("result");
+      resultDiv.innerHTML = `<p style='text-align:center; font-weight:bold; margin-top:20px;'><span class="ja">運命の店舗を抽選中...🎲</span><span class="en">Rolling the dice...🎲</span></p>`;
+      
       navigator.geolocation.getCurrentPosition(
-        position => { runGacha(position.coords.latitude, position.coords.longitude); }, 
-        err => { runGacha(36.8272, 137.4042); }, { timeout: 4000 } 
+        position => { runGacha(position.coords.latitude, position.coords.longitude); },
+        err => {
+          // 失敗時：駅選択UIを表示する
+          document.getElementById("fallback-ui").style.display = "block";
+          resultDiv.innerHTML = `<p style='text-align:center; color:#856404; font-weight:bold; margin-top:20px;'><span class="ja">上のメニューから基準とする駅を選択してください👆</span><span class="en">Please select a station above 👆</span></p>`;
+        },
+        { timeout: 4000 }
       );
     }
   </script>
